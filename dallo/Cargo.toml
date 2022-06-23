@@ -1,0 +1,16 @@
+[package]
+name = "dallo"
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+strip = true
+opt-level = "z"
+panic = "abort"
+
+[features]
+default = ["host"]
+host = []
