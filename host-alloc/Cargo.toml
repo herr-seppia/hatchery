@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "host-alloc",
+    "host-alloc-contract",
+]
+
+[profile.release]
+strip = true
+opt-level = "z"
+panic = "abort"
