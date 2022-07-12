@@ -8,8 +8,10 @@ edition = "2021"
 [dependencies]
 colored = "2.0.0"
 rkyv = "0.7.38"
-wasmer = "2.3.0"
-wasmer-vm = "2.3.0"
+#wasmer = "2.3.0"
+#wasmer-vm = "2.3.0"
+wasmer = { path = "../dusk-wasmer/lib/api" }
+wasmer-vm = { path = "../dusk-wasmer/lib/vm" }
 dallo = { path = "dallo" , default_features = false }
 blake3 = "1.3.1"
 

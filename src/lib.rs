@@ -63,7 +63,7 @@ impl Env {
         Env(Arc::new(UnsafeCell::new(EnvInner::Uninitialized)))
     }
 
-    pub fn new(bytecode: &[u8]) -> Result<Self, Error> {
+    pub fn new(bytecode: &[u8], snapshot_id: usize) -> Result<Self, Error> {
         let store = wasmer::Store::default();
         let module = wasmer::Module::new(&store, bytecode)?;
 
@@ -77,7 +77,7 @@ impl Env {
             }
         };
 
-        let instance = wasmer::Instance::new(&module, &imports)?;
+        let instance = wasmer::Instance::new(&module, &imports, snapshot_id)?;
 
         let arg_buf_ofs = global_i32(&instance.exports, "A")?;
         let arg_buf_len_pos = global_i32(&instance.exports, "AL")?;
@@ -305,11 +305,11 @@ fn host_snapshot(env: &Env) {
 
 #[macro_export]
 macro_rules! module {
-    ($name:literal) => {
+    ($name:literal,$snapshot_id:expr) => {
         hatchery::Env::new(include_bytes!(concat!(
             "../target/wasm32-unknown-unknown/release/",
             $name,
             ".wasm"
-        )))
+        )), $snapshot_id)
     };
 }
