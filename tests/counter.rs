@@ -4,7 +4,7 @@ use hatchery::{module, Error, World};
 pub fn counter_trivial() -> Result<(), Error> {
     let mut world = World::new();
 
-    let id = world.deploy(module!("counter", 3)?);
+    let id = world.deploy(module!("counter")?);
 
     let value: i32 = world.query(id, "read_value", ())?;
 
@@ -17,7 +17,7 @@ pub fn counter_trivial() -> Result<(), Error> {
 pub fn counter_increment() -> Result<(), Error> {
     let mut world = World::new();
 
-    let id = world.deploy(module!("counter", 4)?);
+    let id = world.deploy(module!("counter")?);
 
     world.transact(id, "increment", ())?;
 
@@ -36,7 +36,7 @@ pub fn counter_increment() -> Result<(), Error> {
 pub fn counter_mogrify() -> Result<(), Error> {
     let mut world = World::new();
 
-    let id = world.deploy(module!("counter", 5)?);
+    let id = world.deploy(module!("counter")?);
 
     let value: i32 = world.transact(id, "mogrify", 32)?;
 

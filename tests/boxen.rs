@@ -1,10 +1,10 @@
 use hatchery::{module, Error, World};
 
-#[ignore]
+#[test]
 pub fn box_set_get() -> Result<(), Error> {
     let mut world = World::new();
 
-    let id = world.deploy(module!("box", 1)?);
+    let id = world.deploy(module!("box")?);
 
     let value: Option<i32> = world.query(id, "get", ())?;
 
@@ -19,11 +19,11 @@ pub fn box_set_get() -> Result<(), Error> {
     Ok(())
 }
 
-#[test]
+#[ignore]
 pub fn box_get() -> Result<(), Error> {
     let mut world = World::new();
 
-    let id = world.deploy(module!("box", 1)?);
+    let id = world.deploy(module!("box")?);
 
     let value: Option<i16> = world.query(id, "get", ())?;
 

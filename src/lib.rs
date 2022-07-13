@@ -7,6 +7,7 @@ use rkyv::{
     Archive, Deserialize, Infallible, Serialize,
 };
 use std::{cell::UnsafeCell, sync::Arc};
+use tempfile::tempdir;
 use wasmer::{imports, Exports, Function, NativeFunc, Val, WasmerEnv};
 
 mod error;
@@ -63,8 +64,8 @@ impl Env {
         Env(Arc::new(UnsafeCell::new(EnvInner::Uninitialized)))
     }
 
-    pub fn new(bytecode: &[u8], snapshot_id: usize) -> Result<Self, Error> {
-        let store = wasmer::Store::default();
+    pub fn new(bytecode: &[u8]) -> Result<Self, Error> {
+        let store = wasmer::Store::new_with_path(tempdir().expect("temporary directory").path().into());
         let module = wasmer::Module::new(&store, bytecode)?;
 
         let mut env = Env::uninitialized();
@@ -72,12 +73,12 @@ impl Env {
         let imports = imports! {
             "env" => {
                 "alloc" => Function::new_native_with_env(&store, env.clone(), host_alloc),
-        "dealloc" => Function::new_native_with_env(&store, env.clone(), host_dealloc),
+                "dealloc" => Function::new_native_with_env(&store, env.clone(), host_dealloc),
                 "snap" => Function::new_native_with_env(&store, env.clone(), host_snapshot),
             }
         };
 
-        let instance = wasmer::Instance::new(&module, &imports, snapshot_id)?;
+        let instance = wasmer::Instance::new(&module, &imports)?;
 
         let arg_buf_ofs = global_i32(&instance.exports, "A")?;
         let arg_buf_len_pos = global_i32(&instance.exports, "AL")?;
@@ -305,11 +306,11 @@ fn host_snapshot(env: &Env) {
 
 #[macro_export]
 macro_rules! module {
-    ($name:literal,$snapshot_id:expr) => {
+    ($name:literal) => {
         hatchery::Env::new(include_bytes!(concat!(
             "../target/wasm32-unknown-unknown/release/",
             $name,
             ".wasm"
-        )), $snapshot_id)
+        )))
     };
 }

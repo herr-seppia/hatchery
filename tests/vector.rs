@@ -4,7 +4,7 @@ use hatchery::{module, Error, World};
 pub fn vector_push_pop() -> Result<(), Error> {
     let mut world = World::new();
 
-    let id = world.deploy(module!("vector", 6)?);
+    let id = world.deploy(module!("vector")?);
 
     const N: usize = 128;
 
