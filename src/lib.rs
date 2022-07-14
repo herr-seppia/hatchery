@@ -313,17 +313,3 @@ fn host_dealloc(env: &Env, addr: i32) {
 fn host_snapshot(env: &Env) {
     env.snap()
 }
-
-#[macro_export]
-macro_rules! module {
-    ($name:literal,$path:expr) => {
-        hatchery::Env::new(
-            include_bytes!(concat!(
-                "../target/wasm32-unknown-unknown/release/",
-                $name,
-                ".wasm"
-            )),
-            $path,
-        )
-    };
-}
