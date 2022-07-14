@@ -7,7 +7,7 @@ use rkyv::{
     Archive, Deserialize, Infallible, Serialize,
 };
 use std::{cell::UnsafeCell, sync::Arc};
-use tempfile::tempdir;
+use std::path::Path;
 use wasmer::{imports, Exports, Function, NativeFunc, Val, WasmerEnv};
 
 mod error;
@@ -64,8 +64,12 @@ impl Env {
         Env(Arc::new(UnsafeCell::new(EnvInner::Uninitialized)))
     }
 
-    pub fn new(bytecode: &[u8]) -> Result<Self, Error> {
-        let store = wasmer::Store::new_with_path(tempdir().expect("temporary directory").path().into());
+    pub fn new<P>(bytecode: &[u8], store_path: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>
+    {
+        let id = blake3::hash(bytecode).into();
+        let store = wasmer::Store::new_with_path(store_path.as_ref().join(format!("{}", ModuleIdWrapper(id))).as_path());
         let module = wasmer::Module::new(&store, bytecode)?;
 
         let mut env = Env::uninitialized();
@@ -94,8 +98,6 @@ impl Env {
             .expect("infallible");
 
         println!("arg_buf_len {:?}", arg_buf_len);
-
-        let id = blake3::hash(bytecode).into();
 
         env.initialize(id, instance, arg_buf_ofs, arg_buf_len, heap_base);
 
@@ -304,13 +306,34 @@ fn host_snapshot(env: &Env) {
     env.snap()
 }
 
+pub struct ModuleIdWrapper(pub ModuleId);
+
+impl core::fmt::UpperHex for ModuleIdWrapper {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let bytes = &self.0[..];
+        if f.alternate() {
+            write!(f, "0x")?
+        }
+        for byte in bytes {
+            write!(f, "{:02X}", &byte)?
+        }
+        Ok(())
+    }
+}
+
+impl core::fmt::Display for ModuleIdWrapper {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::UpperHex::fmt(self, f)
+    }
+}
+
 #[macro_export]
 macro_rules! module {
-    ($name:literal) => {
+    ($name:literal,$path:expr) => {
         hatchery::Env::new(include_bytes!(concat!(
             "../target/wasm32-unknown-unknown/release/",
             $name,
             ".wasm"
-        )))
+        )), $path)
     };
 }

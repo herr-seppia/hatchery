@@ -2,9 +2,9 @@ use hatchery::{module, Error, World};
 
 #[test]
 pub fn box_set_get() -> Result<(), Error> {
-    let mut world = World::new();
+    let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("box")?);
+    let id = world.deploy(module!("box", world.storage_path())?);
 
     let value: Option<i32> = world.query(id, "get", ())?;
 
@@ -21,9 +21,9 @@ pub fn box_set_get() -> Result<(), Error> {
 
 #[ignore]
 pub fn box_get() -> Result<(), Error> {
-    let mut world = World::new();
+    let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("box")?);
+    let id = world.deploy(module!("box", world.storage_path())?);
 
     let value: Option<i16> = world.query(id, "get", ())?;
 

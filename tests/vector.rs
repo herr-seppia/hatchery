@@ -2,9 +2,9 @@ use hatchery::{module, Error, World};
 
 #[ignore]
 pub fn vector_push_pop() -> Result<(), Error> {
-    let mut world = World::new();
+    let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("vector")?);
+    let id = world.deploy(module!("vector", world.storage_path())?);
 
     const N: usize = 128;
 

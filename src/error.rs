@@ -1,3 +1,4 @@
+use std::io;
 use rkyv::ser::serializers::{BufferSerializerError, CompositeSerializerError};
 
 #[derive(Debug)]
@@ -8,6 +9,7 @@ pub enum Error {
     RuntimeError(wasmer::RuntimeError),
     MissingModuleExport,
     BufferSerializerError(BufferSerializerError),
+    PersistenceError(io::Error),
 }
 
 impl From<wasmer::InstantiationError> for Error {

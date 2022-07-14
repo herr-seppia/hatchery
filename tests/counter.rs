@@ -2,9 +2,9 @@ use hatchery::{module, Error, World};
 
 #[ignore]
 pub fn counter_trivial() -> Result<(), Error> {
-    let mut world = World::new();
+    let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("counter")?);
+    let id = world.deploy(module!("counter", world.storage_path())?);
 
     let value: i32 = world.query(id, "read_value", ())?;
 
@@ -15,9 +15,9 @@ pub fn counter_trivial() -> Result<(), Error> {
 
 #[ignore]
 pub fn counter_increment() -> Result<(), Error> {
-    let mut world = World::new();
+    let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("counter")?);
+    let id = world.deploy(module!("counter", world.storage_path())?);
 
     world.transact(id, "increment", ())?;
 
@@ -34,9 +34,9 @@ pub fn counter_increment() -> Result<(), Error> {
 
 #[ignore]
 pub fn counter_mogrify() -> Result<(), Error> {
-    let mut world = World::new();
+    let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("counter")?);
+    let id = world.deploy(module!("counter", world.storage_path())?);
 
     let value: i32 = world.transact(id, "mogrify", 32)?;
 
