@@ -1,10 +1,13 @@
-use hatchery::{module, Error, World};
+use hatchery::{contract_bytes, Error, World};
 
-#[ignore]
+#[test]
 pub fn counter_trivial() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("counter", world.storage_path())?);
+    let id = world.deploy(hatchery::Env::new(
+        contract_bytes!("counter"),
+        world.storage_path(),
+    )?);
 
     let value: i32 = world.query(id, "read_value", ())?;
 
@@ -13,11 +16,14 @@ pub fn counter_trivial() -> Result<(), Error> {
     Ok(())
 }
 
-#[ignore]
+#[test]
 pub fn counter_increment() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("counter", world.storage_path())?);
+    let id = world.deploy(hatchery::Env::new(
+        contract_bytes!("counter"),
+        world.storage_path(),
+    )?);
 
     world.transact(id, "increment", ())?;
 
@@ -32,11 +38,14 @@ pub fn counter_increment() -> Result<(), Error> {
     Ok(())
 }
 
-#[ignore]
+#[test]
 pub fn counter_mogrify() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("counter", world.storage_path())?);
+    let id = world.deploy(hatchery::Env::new(
+        contract_bytes!("counter"),
+        world.storage_path(),
+    )?);
 
     let value: i32 = world.transact(id, "mogrify", 32)?;
 

@@ -1,10 +1,13 @@
-use hatchery::{module, Error, World};
+use hatchery::{contract_bytes, Error, World};
 
 #[test]
 pub fn box_set_get() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("box", world.storage_path())?);
+    let id = world.deploy(hatchery::Env::new(
+        contract_bytes!("box"),
+        world.storage_path(),
+    )?);
 
     let value: Option<i32> = world.query(id, "get", ())?;
 
@@ -23,7 +26,10 @@ pub fn box_set_get() -> Result<(), Error> {
 pub fn box_get() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("box", world.storage_path())?);
+    let id = world.deploy(hatchery::Env::new(
+        contract_bytes!("box"),
+        world.storage_path(),
+    )?);
 
     let value: Option<i16> = world.query(id, "get", ())?;
 

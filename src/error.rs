@@ -1,5 +1,5 @@
-use std::io;
 use rkyv::ser::serializers::{BufferSerializerError, CompositeSerializerError};
+use std::io;
 
 #[derive(Debug)]
 pub enum Error {

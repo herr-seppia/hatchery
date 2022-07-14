@@ -1,10 +1,13 @@
-use hatchery::{module, Error, World};
+use hatchery::{contract_bytes, Error, World};
 
-#[ignore]
+#[test]
 pub fn vector_push_pop() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module!("vector", world.storage_path())?);
+    let id = world.deploy(hatchery::Env::new(
+        contract_bytes!("vector"),
+        world.storage_path(),
+    )?);
 
     const N: usize = 128;
 

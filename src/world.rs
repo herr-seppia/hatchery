@@ -4,6 +4,7 @@ use rkyv::{Archive, Deserialize, Infallible, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
+use crate::Error::PersistenceError;
 
 #[derive(Default)]
 pub struct World {
@@ -11,22 +12,22 @@ pub struct World {
     storage_path: PathBuf,
 }
 
-
 impl World {
     pub fn new<P>(path: P) -> Self
     where
-        P: Into<PathBuf>
+        P: Into<PathBuf>,
     {
         World {
             environments: BTreeMap::new(),
-            storage_path: path.into()
+            storage_path: path.into(),
         }
     }
 
     pub fn ephemeral() -> Result<Self, Error> {
         Ok(World {
             environments: BTreeMap::new(),
-            storage_path: PathBuf::from("/tmp"),//tempdir()?.path().into(),
+            storage_path: tempdir().map_err(PersistenceError)?.path().into(),
+            // storage_path: PathBuf::from("/tmp/"),
         })
     }
 
