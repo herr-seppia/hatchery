@@ -21,7 +21,7 @@ use crate::error::Error;
 use crate::instance::Instance;
 use crate::memory::MemHandler;
 use crate::storage_helpers::module_id_to_filename;
-use crate::Error::PersistenceError;
+use crate::Error::{MemoryError, PersistenceError};
 
 #[derive(Debug)]
 pub struct WorldInner {
@@ -70,6 +70,7 @@ impl World {
     }
 
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
+        const GROW_BY: u32 = 2; // todo: make it a parameter
         let id = blake3::hash(bytecode).into();
         let store = wasmer::Store::new_with_path(
             self.storage_path()
@@ -95,13 +96,15 @@ impl World {
 
         let instance = wasmer::Instance::new(&module, &imports)?;
 
+        let mem = instance.exports.get_memory("memory")?;
+        let _ = mem.grow(GROW_BY).map_err(|_| MemoryError)?;// todo - pass some info to the error;
+
         let arg_buf_ofs = global_i32(&instance.exports, "A")?;
         let arg_buf_len_pos = global_i32(&instance.exports, "AL")?;
         let heap_base = global_i32(&instance.exports, "__heap_base")?;
 
         // We need to read the actual value of AL from the offset into memory
 
-        let mem = instance.exports.get_memory("memory")?;
         let data =
             &unsafe { mem.data_unchecked() }[arg_buf_len_pos as usize..][..4];
 
