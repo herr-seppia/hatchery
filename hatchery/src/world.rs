@@ -69,11 +69,44 @@ impl World {
         )))))
     }
 
+    pub fn snapshot<P>(&self, module_id: &ModuleId, snapshot_id: P) -> Result<(), Error>
+    where
+        P: AsRef<str>,
+    {
+        let storage_path = self.storage_path();
+        let module_filename = module_id_to_filename(*module_id);
+        let src_path = storage_path
+            .join(module_filename);
+        let trg_sub_path = PathBuf::from(snapshot_id.as_ref());
+        let trg_path = storage_path
+            .join(trg_sub_path);
+        println!("creating snapshot from {:?} at {:?}", src_path, trg_path);
+        std::fs::copy(src_path, trg_path).map_err(PersistenceError)?; // todo: atm snapshot id needs to be unique
+        Ok(())
+    }
+
+    pub fn restore_snapshot(&mut self, bytecode: &[u8], mem_grow_by: u32, snapshot_id: &str) -> Result<ModuleId, Error>
+    {
+        fn ff(_module_id: &ModuleId, snapshot_id: &str) -> String {
+            String::from(snapshot_id)
+        }
+        println!("restoring snapshot {:?}", snapshot_id);
+        self.deploy_snapshot(bytecode, mem_grow_by, snapshot_id, ff)
+    }
+
     pub fn deploy(&mut self, bytecode: &[u8], mem_grow_by: u32) -> Result<ModuleId, Error> {
-        let id = blake3::hash(bytecode).into();
+        fn ff(module_id: &ModuleId, _snapshot_id: &str) -> String {
+            module_id_to_filename(*module_id)
+        }
+        self.deploy_snapshot(bytecode, mem_grow_by, "", ff)
+    }
+
+    fn deploy_snapshot(&mut self, bytecode: &[u8], mem_grow_by: u32, snapshot_id: &str, f: fn(&ModuleId, &str) -> String) -> Result<ModuleId, Error>
+    {
+        let id: ModuleId = blake3::hash(bytecode).into();
         let store = wasmer::Store::new_with_path(
             self.storage_path()
-                .join(module_id_to_filename(id))
+                .join(f(&id, snapshot_id))
                 .as_path(),
         );
         let module = wasmer::Module::new(&store, bytecode)?;

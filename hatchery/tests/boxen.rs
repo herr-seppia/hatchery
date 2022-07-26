@@ -54,3 +54,51 @@ pub fn box_set_store_restore_get() -> Result<(), Error> {
 
     Ok(())
 }
+
+#[test]
+pub fn box_set_snapshot_set_get_restore_snapshot_get() -> Result<(), Error> {
+    let mut world = World::ephemeral()?;
+
+    let id = world.deploy(module_bytecode!("box"), 0)?;
+
+    let value: Option<i32> = world.query(id, "get", ())?;
+
+    assert_eq!(value, None);
+
+
+    println!("setting to 0x11, storing snapshot1");
+
+    world.transact(id, "set", 0x11)?;
+    world.snapshot(&id, "snapshot1")?;
+
+    println!("setting to 0x12, storing snapshot2");
+
+    world.transact(id, "set", 0x12)?;
+    world.snapshot(&id, "snapshot2")?;
+
+    let value: Option<i16> = world.query(id, "get", ())?;
+
+    println!("confirming get as 0x12");
+
+    assert_eq!(value, Some(0x12));
+
+    println!("restoring snapshot1");
+
+    world.restore_snapshot(module_bytecode!("box"), 0, "snapshot1")?;
+
+    let value: Option<i16> = world.query(id, "get", ())?;
+
+    println!("confirming get as 0x11");
+    assert_eq!(value, Some(0x11));
+
+    println!("restoring snapshot2");
+
+    world.restore_snapshot(module_bytecode!("box"), 0, "snapshot2")?;
+
+    let value: Option<i16> = world.query(id, "get", ())?;
+
+    println!("confirming get as 0x12");
+    assert_eq!(value, Some(0x12));
+
+    Ok(())
+}
