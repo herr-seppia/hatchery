@@ -56,7 +56,7 @@ pub fn box_set_store_restore_get() -> Result<(), Error> {
 }
 
 #[test]
-pub fn box_set_snapshot_set_get_restore_snapshot_get() -> Result<(), Error> {
+pub fn box_create_and_restore_snapshots() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
     let id = world.deploy(module_bytecode!("box"), 0)?;
