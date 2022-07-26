@@ -69,42 +69,69 @@ impl World {
         )))))
     }
 
-    pub fn snapshot<P>(&self, module_id: &ModuleId, snapshot_id: P) -> Result<(), Error>
+    pub fn snapshot<P>(
+        &self,
+        module_id: &ModuleId,
+        snapshot_id: P,
+    ) -> Result<(), Error>
     where
         P: AsRef<str>,
     {
-        let src_path = self.storage_path()
-            .join(module_id_to_filename(*module_id));
-        let trg_path = self.storage_path()
-            .join(PathBuf::from(snapshot_id.as_ref()));
+        let src_path =
+            self.storage_path().join(module_id_to_filename(*module_id));
+        fn append_file_name(
+            path: impl AsRef<Path>,
+            snapshot_id: &str,
+        ) -> PathBuf {
+            let mut result = path.as_ref().to_owned();
+            let new_file_name = format!(
+                "{}_{}",
+                path.as_ref().file_name().unwrap().to_str().unwrap(),
+                snapshot_id
+            );
+            result.set_file_name(new_file_name);
+            result
+        }
+        let trg_path = append_file_name(src_path.clone(), snapshot_id.as_ref());
         println!("creating snapshot from {:?} at {:?}", src_path, trg_path);
-        std::fs::copy(src_path, trg_path).map_err(PersistenceError)?; // todo: atm snapshot id needs to be unique
+        std::fs::copy(src_path, trg_path).map_err(PersistenceError)?;
         Ok(())
     }
 
-    pub fn restore_snapshot(&mut self, bytecode: &[u8], mem_grow_by: u32, snapshot_id: &str) -> Result<ModuleId, Error>
-    {
-        fn ff(_module_id: &ModuleId, snapshot_id: &str) -> String {
-            String::from(snapshot_id)
+    pub fn restore_snapshot(
+        &mut self,
+        bytecode: &[u8],
+        mem_grow_by: u32,
+        snapshot_id: &str,
+    ) -> Result<ModuleId, Error> {
+        fn ff(module_id: &ModuleId, snapshot_id: &str) -> String {
+            format!("{}_{}", module_id_to_filename(*module_id), snapshot_id)
         }
         println!("restoring snapshot {:?}", snapshot_id);
         self.deploy_snapshot(bytecode, mem_grow_by, snapshot_id, ff)
     }
 
-    pub fn deploy(&mut self, bytecode: &[u8], mem_grow_by: u32) -> Result<ModuleId, Error> {
+    pub fn deploy(
+        &mut self,
+        bytecode: &[u8],
+        mem_grow_by: u32,
+    ) -> Result<ModuleId, Error> {
         fn ff(module_id: &ModuleId, _snapshot_id: &str) -> String {
             module_id_to_filename(*module_id)
         }
         self.deploy_snapshot(bytecode, mem_grow_by, "", ff)
     }
 
-    fn deploy_snapshot(&mut self, bytecode: &[u8], mem_grow_by: u32, snapshot_id: &str, f: fn(&ModuleId, &str) -> String) -> Result<ModuleId, Error>
-    {
+    fn deploy_snapshot(
+        &mut self,
+        bytecode: &[u8],
+        mem_grow_by: u32,
+        snapshot_id: &str,
+        f: fn(&ModuleId, &str) -> String,
+    ) -> Result<ModuleId, Error> {
         let id: ModuleId = blake3::hash(bytecode).into();
         let store = wasmer::Store::new_with_path(
-            self.storage_path()
-                .join(f(&id, snapshot_id))
-                .as_path(),
+            self.storage_path().join(f(&id, snapshot_id)).as_path(),
         );
         let module = wasmer::Module::new(&store, bytecode)?;
 
