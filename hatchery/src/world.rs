@@ -73,13 +73,10 @@ impl World {
     where
         P: AsRef<str>,
     {
-        let storage_path = self.storage_path();
-        let module_filename = module_id_to_filename(*module_id);
-        let src_path = storage_path
-            .join(module_filename);
-        let trg_sub_path = PathBuf::from(snapshot_id.as_ref());
-        let trg_path = storage_path
-            .join(trg_sub_path);
+        let src_path = self.storage_path()
+            .join(module_id_to_filename(*module_id));
+        let trg_path = self.storage_path()
+            .join(PathBuf::from(snapshot_id.as_ref()));
         println!("creating snapshot from {:?} at {:?}", src_path, trg_path);
         std::fs::copy(src_path, trg_path).map_err(PersistenceError)?; // todo: atm snapshot id needs to be unique
         Ok(())
