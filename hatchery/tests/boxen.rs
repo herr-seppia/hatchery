@@ -12,7 +12,7 @@ use std::path::PathBuf;
 pub fn box_set_get() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module_bytecode!("box"))?;
+    let id = world.deploy(module_bytecode!("box"), 0)?;
 
     let value: Option<i32> = world.query(id, "get", ())?;
 
@@ -35,7 +35,7 @@ pub fn box_set_store_restore_get() -> Result<(), Error> {
     {
         let mut first_world = World::ephemeral()?;
 
-        first_id = first_world.deploy(module_bytecode!("box"))?;
+        first_id = first_world.deploy(module_bytecode!("box"), 0)?;
 
         first_world.transact(first_id, "set", 0x23)?;
 
@@ -44,7 +44,7 @@ pub fn box_set_store_restore_get() -> Result<(), Error> {
 
     let mut second_world = World::new(storage_path);
 
-    let second_id = second_world.deploy(module_bytecode!("box"))?;
+    let second_id = second_world.deploy(module_bytecode!("box"), 0)?;
 
     assert_eq!(first_id, second_id);
 

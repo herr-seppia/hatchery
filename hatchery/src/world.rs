@@ -69,8 +69,7 @@ impl World {
         )))))
     }
 
-    pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
-        const GROW_BY: u32 = 2; // todo: make it a parameter
+    pub fn deploy(&mut self, bytecode: &[u8], mem_grow_by: u32) -> Result<ModuleId, Error> {
         let id = blake3::hash(bytecode).into();
         let store = wasmer::Store::new_with_path(
             self.storage_path()
@@ -97,7 +96,9 @@ impl World {
         let instance = wasmer::Instance::new(&module, &imports)?;
 
         let mem = instance.exports.get_memory("memory")?;
-        let _ = mem.grow(GROW_BY).map_err(|_| MemoryError)?;// todo - pass some info to the error;
+        if mem_grow_by != 0 {
+            let _ = mem.grow(mem_grow_by).map_err(MemoryError)?;
+        }
 
         let arg_buf_ofs = global_i32(&instance.exports, "A")?;
         let arg_buf_len_pos = global_i32(&instance.exports, "AL")?;

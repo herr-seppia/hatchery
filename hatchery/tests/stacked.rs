@@ -12,7 +12,7 @@ use std::path::PathBuf;
 pub fn push_pop() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module_bytecode!("stack"))?;
+    let id = world.deploy(module_bytecode!("stack"), 0)?;
 
     let val = 42;
 
@@ -32,9 +32,10 @@ pub fn push_pop() -> Result<(), Error> {
 
 #[test]
 pub fn multi_push_pop() -> Result<(), Error> {
+    const MEM_GROW_BY: u32 = 2;
     let mut world = World::ephemeral()?;
 
-    let id = world.deploy(module_bytecode!("stack"))?;
+    let id = world.deploy(module_bytecode!("stack"), MEM_GROW_BY)?;
 
     const N: i32 = 5_000;
 
@@ -61,6 +62,7 @@ pub fn multi_push_pop() -> Result<(), Error> {
 
 #[test]
 pub fn multi_push_store_restore_pop() -> Result<(), Error> {
+    const MEM_GROW_BY: u32 = 2;
     let mut storage_path = PathBuf::new();
     let first_id: ModuleId;
     const N: i32 = 5_000;
@@ -68,7 +70,7 @@ pub fn multi_push_store_restore_pop() -> Result<(), Error> {
     {
         let mut first_world = World::ephemeral()?;
 
-        first_id = first_world.deploy(module_bytecode!("stack"))?;
+        first_id = first_world.deploy(module_bytecode!("stack"), MEM_GROW_BY)?;
 
         for i in 0..N {
             first_world.transact(first_id, "push", i)?;
@@ -82,7 +84,7 @@ pub fn multi_push_store_restore_pop() -> Result<(), Error> {
 
     let mut second_world = World::new(storage_path);
 
-    let second_id = second_world.deploy(module_bytecode!("stack"))?;
+    let second_id = second_world.deploy(module_bytecode!("stack"), MEM_GROW_BY)?;
 
     assert_eq!(first_id, second_id);
 

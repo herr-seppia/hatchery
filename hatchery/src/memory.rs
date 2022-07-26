@@ -22,9 +22,6 @@ impl MemHandler {
         self.align_to(align);
         let ofs = self.heap_base;
         self.heap_base += size;
-        // if ofs > (1048000 + 64000) {
-        //     println!("allocating {} bytes at {:08x} - {}", size, ofs, ofs-1048576);
-        // }
         ofs
     }
 }
