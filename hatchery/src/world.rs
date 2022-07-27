@@ -71,21 +71,21 @@ impl World {
 
     pub fn snapshot(
         &self,
-        module_id: &ModuleId,
-        snapshot_id: &SnapshotId,
+        module_id: ModuleId,
+        snapshot_id: SnapshotId,
     ) -> Result<(), Error>
     {
         let src_path =
-            self.storage_path().join(module_id_to_filename(*module_id));
+            self.storage_path().join(module_id_to_filename(module_id));
         fn append_file_name(
             path: impl AsRef<Path>,
-            snapshot_id: &SnapshotId,
+            snapshot_id: SnapshotId,
         ) -> PathBuf {
             let mut result = path.as_ref().to_owned();
             let new_file_name = format!(
                 "{}_{}",
                 path.as_ref().file_name().unwrap().to_str().unwrap(),
-                snapshot_id_to_filename(*snapshot_id)
+                snapshot_id_to_filename(snapshot_id)
             );
             result.set_file_name(new_file_name);
             result
@@ -96,17 +96,17 @@ impl World {
         Ok(())
     }
 
-    pub fn restore_snapshot(
+    pub fn restore_from_snapshot(
         &mut self,
         bytecode: &[u8],
         mem_grow_by: u32,
-        snapshot_id: &SnapshotId,
+        snapshot_id: SnapshotId,
     ) -> Result<ModuleId, Error> {
-        fn ff(module_id: &ModuleId, snapshot_id: &SnapshotId) -> String {
-            format!("{}_{}", module_id_to_filename(*module_id), snapshot_id_to_filename(*snapshot_id))
+        fn build_filename(module_id: ModuleId, snapshot_id: SnapshotId) -> String {
+            format!("{}_{}", module_id_to_filename(module_id), snapshot_id_to_filename(snapshot_id))
         }
-        println!("restoring snapshot {:?}", snapshot_id_to_filename(*snapshot_id));
-        self.deploy_snapshot(bytecode, mem_grow_by, snapshot_id, ff)
+        println!("restoring from snapshot {:?}", snapshot_id_to_filename(snapshot_id));
+        self.deploy_snapshot(bytecode, mem_grow_by, snapshot_id, build_filename)
     }
 
     pub fn deploy(
@@ -114,23 +114,23 @@ impl World {
         bytecode: &[u8],
         mem_grow_by: u32,
     ) -> Result<ModuleId, Error> {
-        fn ff(module_id: &ModuleId, _snapshot_id: &SnapshotId) -> String {
-            module_id_to_filename(*module_id)
+        fn build_filename(module_id: ModuleId, _snapshot_id: SnapshotId) -> String {
+            module_id_to_filename(module_id)
         }
         const EMPTY_SNAPSHOT_ID: SnapshotId = [0u8; 32];
-        self.deploy_snapshot(bytecode, mem_grow_by, &EMPTY_SNAPSHOT_ID, ff)
+        self.deploy_snapshot(bytecode, mem_grow_by, EMPTY_SNAPSHOT_ID, build_filename)
     }
 
     fn deploy_snapshot(
         &mut self,
         bytecode: &[u8],
         mem_grow_by: u32,
-        snapshot_id: &SnapshotId,
-        f: fn(&ModuleId, &SnapshotId) -> String,
+        snapshot_id: SnapshotId,
+        build_filename: fn(ModuleId, SnapshotId) -> String,
     ) -> Result<ModuleId, Error> {
         let id: ModuleId = blake3::hash(bytecode).into();
         let store = wasmer::Store::new_with_path(
-            self.storage_path().join(f(&id, snapshot_id)).as_path(),
+            self.storage_path().join(build_filename(id, snapshot_id)).as_path(),
         );
         let module = wasmer::Module::new(&store, bytecode)?;
 
