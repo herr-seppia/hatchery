@@ -12,8 +12,8 @@ mod storage_helpers;
 mod world;
 
 pub use error::Error;
-pub use world::World;
 pub use storage_helpers::into_snapshot_id;
+pub use world::World;
 
 #[macro_export]
 macro_rules! module_bytecode {

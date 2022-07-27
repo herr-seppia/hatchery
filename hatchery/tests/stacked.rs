@@ -70,7 +70,8 @@ pub fn multi_push_store_restore_pop() -> Result<(), Error> {
     {
         let mut first_world = World::ephemeral()?;
 
-        first_id = first_world.deploy(module_bytecode!("stack"), MEM_GROW_BY)?;
+        first_id =
+            first_world.deploy(module_bytecode!("stack"), MEM_GROW_BY)?;
 
         for i in 0..N {
             first_world.transact(first_id, "push", i)?;
@@ -84,12 +85,14 @@ pub fn multi_push_store_restore_pop() -> Result<(), Error> {
 
     let mut second_world = World::new(storage_path);
 
-    let second_id = second_world.deploy(module_bytecode!("stack"), MEM_GROW_BY)?;
+    let second_id =
+        second_world.deploy(module_bytecode!("stack"), MEM_GROW_BY)?;
 
     assert_eq!(first_id, second_id);
 
     for i in (0..N).rev() {
-        let popped: Option<i32> = second_world.transact(second_id, "pop", ())?;
+        let popped: Option<i32> =
+            second_world.transact(second_id, "pop", ())?;
         let len: i32 = second_world.query(second_id, "len", ())?;
 
         assert_eq!(len, i);

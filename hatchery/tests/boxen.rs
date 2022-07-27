@@ -5,7 +5,7 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use dallo::ModuleId;
-use hatchery::{module_bytecode, Error, World, into_snapshot_id};
+use hatchery::{into_snapshot_id, module_bytecode, Error, World};
 use std::path::PathBuf;
 
 #[test]
@@ -65,7 +65,6 @@ pub fn box_create_and_restore_snapshots() -> Result<(), Error> {
 
     assert_eq!(value, None);
 
-
     println!("setting to 0x11, storing snapshot1");
 
     world.transact(id, "set", 0x11)?;
@@ -84,7 +83,11 @@ pub fn box_create_and_restore_snapshots() -> Result<(), Error> {
 
     println!("restoring snapshot1");
 
-    world.restore_from_snapshot(module_bytecode!("box"), 0, into_snapshot_id("snapshot1"))?;
+    world.restore_from_snapshot(
+        module_bytecode!("box"),
+        0,
+        into_snapshot_id("snapshot1"),
+    )?;
 
     let value: Option<i16> = world.query(id, "get", ())?;
 
@@ -93,7 +96,11 @@ pub fn box_create_and_restore_snapshots() -> Result<(), Error> {
 
     println!("restoring snapshot2");
 
-    world.restore_from_snapshot(module_bytecode!("box"), 0, into_snapshot_id("snapshot2"))?;
+    world.restore_from_snapshot(
+        module_bytecode!("box"),
+        0,
+        into_snapshot_id("snapshot2"),
+    )?;
 
     let value: Option<i16> = world.query(id, "get", ())?;
 

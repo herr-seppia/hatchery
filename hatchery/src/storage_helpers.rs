@@ -1,5 +1,12 @@
 use dallo::{ModuleId, SnapshotId};
 
+pub fn merge_module_snapshot_names(
+    module_name: impl AsRef<str>,
+    snapshot_name: impl AsRef<str>,
+) -> String {
+    format!("{}_{}", module_name.as_ref(), snapshot_name.as_ref())
+}
+
 pub fn module_id_to_filename(module_id: ModuleId) -> String {
     format!("{}", ModuleIdWrapper(module_id))
 }
