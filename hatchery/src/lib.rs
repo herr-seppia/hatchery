@@ -13,6 +13,7 @@ mod world;
 
 pub use error::Error;
 pub use world::World;
+pub use storage_helpers::into_snapshot_id;
 
 #[macro_export]
 macro_rules! module_bytecode {

@@ -10,7 +10,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use dallo::{ModuleId, Ser};
+use dallo::{ModuleId, Ser, SnapshotId};
 use parking_lot::ReentrantMutex;
 use rkyv::{archived_value, Archive, Deserialize, Infallible, Serialize};
 use tempfile::tempdir;
@@ -20,7 +20,7 @@ use crate::env::Env;
 use crate::error::Error;
 use crate::instance::Instance;
 use crate::memory::MemHandler;
-use crate::storage_helpers::module_id_to_filename;
+use crate::storage_helpers::{module_id_to_filename, snapshot_id_to_filename};
 use crate::Error::{MemoryError, PersistenceError};
 
 #[derive(Debug)]
@@ -69,30 +69,28 @@ impl World {
         )))))
     }
 
-    pub fn snapshot<P>(
+    pub fn snapshot(
         &self,
         module_id: &ModuleId,
-        snapshot_id: P,
+        snapshot_id: &SnapshotId,
     ) -> Result<(), Error>
-    where
-        P: AsRef<str>,
     {
         let src_path =
             self.storage_path().join(module_id_to_filename(*module_id));
         fn append_file_name(
             path: impl AsRef<Path>,
-            snapshot_id: &str,
+            snapshot_id: &SnapshotId,
         ) -> PathBuf {
             let mut result = path.as_ref().to_owned();
             let new_file_name = format!(
                 "{}_{}",
                 path.as_ref().file_name().unwrap().to_str().unwrap(),
-                snapshot_id
+                snapshot_id_to_filename(*snapshot_id)
             );
             result.set_file_name(new_file_name);
             result
         }
-        let trg_path = append_file_name(src_path.clone(), snapshot_id.as_ref());
+        let trg_path = append_file_name(src_path.clone(), snapshot_id);
         println!("creating snapshot from {:?} at {:?}", src_path, trg_path);
         std::fs::copy(src_path, trg_path).map_err(PersistenceError)?;
         Ok(())
@@ -102,12 +100,12 @@ impl World {
         &mut self,
         bytecode: &[u8],
         mem_grow_by: u32,
-        snapshot_id: &str,
+        snapshot_id: &SnapshotId,
     ) -> Result<ModuleId, Error> {
-        fn ff(module_id: &ModuleId, snapshot_id: &str) -> String {
-            format!("{}_{}", module_id_to_filename(*module_id), snapshot_id)
+        fn ff(module_id: &ModuleId, snapshot_id: &SnapshotId) -> String {
+            format!("{}_{}", module_id_to_filename(*module_id), snapshot_id_to_filename(*snapshot_id))
         }
-        println!("restoring snapshot {:?}", snapshot_id);
+        println!("restoring snapshot {:?}", snapshot_id_to_filename(*snapshot_id));
         self.deploy_snapshot(bytecode, mem_grow_by, snapshot_id, ff)
     }
 
@@ -116,18 +114,19 @@ impl World {
         bytecode: &[u8],
         mem_grow_by: u32,
     ) -> Result<ModuleId, Error> {
-        fn ff(module_id: &ModuleId, _snapshot_id: &str) -> String {
+        fn ff(module_id: &ModuleId, _snapshot_id: &SnapshotId) -> String {
             module_id_to_filename(*module_id)
         }
-        self.deploy_snapshot(bytecode, mem_grow_by, "", ff)
+        const EMPTY_SNAPSHOT_ID: SnapshotId = [0u8; 32];
+        self.deploy_snapshot(bytecode, mem_grow_by, &EMPTY_SNAPSHOT_ID, ff)
     }
 
     fn deploy_snapshot(
         &mut self,
         bytecode: &[u8],
         mem_grow_by: u32,
-        snapshot_id: &str,
-        f: fn(&ModuleId, &str) -> String,
+        snapshot_id: &SnapshotId,
+        f: fn(&ModuleId, &SnapshotId) -> String,
     ) -> Result<ModuleId, Error> {
         let id: ModuleId = blake3::hash(bytecode).into();
         let store = wasmer::Store::new_with_path(
