@@ -32,7 +32,7 @@ pub fn push_pop() -> Result<(), Error> {
 
 #[test]
 pub fn multi_push_pop() -> Result<(), Error> {
-    const MEM_GROW_BY: u32 = 2;
+    const MEM_GROW_BY: u32 = 5;
     let mut world = World::ephemeral()?;
 
     let id = world.deploy(module_bytecode!("stack"), MEM_GROW_BY)?;
@@ -62,7 +62,7 @@ pub fn multi_push_pop() -> Result<(), Error> {
 
 #[test]
 pub fn multi_push_store_restore_pop() -> Result<(), Error> {
-    const MEM_GROW_BY: u32 = 2;
+    const MEM_GROW_BY: u32 = 5;
     let mut storage_path = PathBuf::new();
     let first_id: ModuleId;
     const N: i32 = 5_000;
