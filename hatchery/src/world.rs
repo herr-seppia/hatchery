@@ -30,7 +30,7 @@ use crate::memory::MemHandler;
 use crate::snapshot::{MemoryPath, Snapshot, SnapshotLike};
 use crate::storage_helpers::module_id_to_name;
 use crate::Error::PersistenceError;
-use crate::world_snapshot::WorldSnapshotId;
+use crate::world_snapshot::{WorldSnapshot, WorldSnapshotId};
 
 #[derive(Debug)]
 pub struct WorldInner {
@@ -38,6 +38,7 @@ pub struct WorldInner {
     storage_path: PathBuf,
     events: Vec<Event>,
     call_stack: CallStack,
+    snapshots: BTreeMap<WorldSnapshotId, WorldSnapshot>,
 }
 
 impl Deref for WorldInner {
@@ -67,6 +68,7 @@ impl World {
             storage_path: path.into(),
             events: vec![],
             call_stack: CallStack::new(ModuleId::uninitialized()),
+            snapshots: BTreeMap::new(),
         }))))
     }
 
@@ -80,6 +82,7 @@ impl World {
                     .into(),
                 events: vec![],
                 call_stack: CallStack::new(ModuleId::uninitialized()),
+                snapshots: BTreeMap::new(),
             },
         )))))
     }
@@ -88,6 +91,7 @@ impl World {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
         let mut world_snapshot_id = WorldSnapshotId::uninitialized();
+        let mut world_snapshot = WorldSnapshot::new();
         for (module_id, environment) in w.environments.iter() {
             let memory_path = MemoryPath::new(self.memory_path(module_id));
             let snapshot = Snapshot::new(&memory_path)?;
@@ -95,16 +99,19 @@ impl World {
             world_snapshot_id.xor(&snapshot.id());
             snapshot.save(&memory_path)?;
             environment.inner_mut().set_dirty(false);
+            world_snapshot.add(*module_id, snapshot.id());
             println!(
                 "persisted state of module: {:?} to file: {:?}",
                 module_id_to_name(*module_id),
                 snapshot.path()
             );
         }
+        world_snapshot.finalize_id(world_snapshot_id);
+        w.snapshots.insert(world_snapshot_id, world_snapshot);
         Ok(world_snapshot_id)
     }
 
-    pub fn restore(&self) -> Result<(), Error> {
+    pub fn restore_last(&self) -> Result<(), Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
         for (module_id, environment) in w.environments.iter() {
@@ -118,6 +125,23 @@ impl World {
                     snapshot.path()
                 );
             }
+        }
+        Ok(())
+    }
+
+    pub fn restore(&self, world_snapshot_id: &WorldSnapshotId) -> Result<(), Error> {
+        let guard = self.0.lock();
+        let w = unsafe { &mut *guard.get() };
+        let world_snapshot: &WorldSnapshot = w.snapshots.get(world_snapshot_id).expect("snapshot not found");
+        for (module_id, snapshot_id) in world_snapshot.modules.iter() {
+            let memory_path = MemoryPath::new(self.memory_path(module_id));
+            let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
+            snapshot.load(&memory_path)?;
+            println!(
+                "restored state of module: {:?} from file: {:?}",
+                module_id_to_name(*module_id),
+                snapshot.path()
+            );
         }
         Ok(())
     }

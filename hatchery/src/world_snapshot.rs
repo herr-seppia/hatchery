@@ -4,6 +4,10 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
+use std::collections::BTreeMap;
+
+use dallo::ModuleId;
+
 use rkyv::{Archive, Deserialize, Serialize};
 use crate::snapshot::SnapshotId;
 
@@ -39,5 +43,29 @@ impl WorldSnapshotId {
 impl From<[u8; 32]> for WorldSnapshotId {
     fn from(array: [u8; 32]) -> Self {
         WorldSnapshotId(array)
+    }
+}
+
+#[derive(Debug)]
+pub struct WorldSnapshot {
+    id: WorldSnapshotId,
+    pub modules: BTreeMap<ModuleId, SnapshotId>,// todo should not be pub
+}
+
+impl WorldSnapshot {
+    pub fn new() -> Self {
+        Self {
+            id: WorldSnapshotId::uninitialized(),
+            modules: BTreeMap::new(),
+        }
+    }
+    pub fn add(&mut self, module_id: ModuleId, snapshot_id: SnapshotId) {
+        self.modules.insert(module_id, snapshot_id);
+    }
+    pub fn finalize_id(&mut self, world_snapshot_id: WorldSnapshotId){
+        self.id = world_snapshot_id
+    }
+    pub fn id(&self) -> &WorldSnapshotId {
+        &self.id
     }
 }
