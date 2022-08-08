@@ -119,11 +119,6 @@ impl World {
             if let Some(snapshot_id) = environment.inner().last_snapshot_id() {
                 let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
                 snapshot.load(&memory_path)?;
-                println!(
-                    "restored state of module: {:?} from file: {:?}",
-                    module_id_to_name(*module_id),
-                    snapshot.path()
-                );
             }
         }
         Ok(())
@@ -133,16 +128,7 @@ impl World {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
         let world_snapshot: &WorldSnapshot = w.snapshots.get(world_snapshot_id).expect("snapshot not found");
-        for (module_id, snapshot_id) in world_snapshot.modules.iter() {
-            let memory_path = MemoryPath::new(self.memory_path(module_id));
-            let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
-            snapshot.load(&memory_path)?;
-            println!(
-                "restored state of module: {:?} from file: {:?}",
-                module_id_to_name(*module_id),
-                snapshot.path()
-            );
-        }
+        world_snapshot.load_snapshots(&self)?;
         Ok(())
     }
 
