@@ -30,6 +30,7 @@ use crate::memory::MemHandler;
 use crate::snapshot::{MemoryPath, Snapshot, SnapshotLike};
 use crate::storage_helpers::module_id_to_name;
 use crate::Error::PersistenceError;
+use crate::world_snapshot::WorldSnapshotId;
 
 #[derive(Debug)]
 pub struct WorldInner {
@@ -83,13 +84,15 @@ impl World {
         )))))
     }
 
-    pub fn persist(&self) -> Result<(), Error> {
+    pub fn persist(&self) -> Result<WorldSnapshotId, Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
+        let mut world_snapshot_id = WorldSnapshotId::uninitialized();
         for (module_id, environment) in w.environments.iter() {
             let memory_path = MemoryPath::new(self.memory_path(module_id));
             let snapshot = Snapshot::new(&memory_path)?;
             environment.inner_mut().set_snapshot_id(snapshot.id());
+            world_snapshot_id.xor(&snapshot.id());
             snapshot.save(&memory_path)?;
             println!(
                 "persisted state of module: {:?} to file: {:?}",
@@ -97,7 +100,7 @@ impl World {
                 snapshot.path()
             );
         }
-        Ok(())
+        Ok(world_snapshot_id)
     }
     pub fn restore(&self) -> Result<(), Error> {
         let guard = self.0.lock();

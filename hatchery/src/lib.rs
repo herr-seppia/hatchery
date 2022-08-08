@@ -11,6 +11,7 @@ mod memory;
 mod snapshot;
 mod storage_helpers;
 mod world;
+mod world_snapshot;
 
 pub use error::Error;
 pub use world::{Event, Receipt, World};
