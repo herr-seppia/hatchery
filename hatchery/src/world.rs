@@ -128,7 +128,7 @@ impl World {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
         let world_snapshot: &WorldSnapshot = w.snapshots.get(world_snapshot_id).expect("snapshot not found");
-        world_snapshot.load_snapshots(&self)?;
+        world_snapshot.restore_snapshots(&self)?;
         Ok(())
     }
 

@@ -67,7 +67,7 @@ impl WorldSnapshot {
     pub fn finalize_id(&mut self, world_snapshot_id: WorldSnapshotId){
         self.id = world_snapshot_id
     }
-    pub fn load_snapshots(&self, world: &World) -> Result<(), Error> {
+    pub fn restore_snapshots(&self, world: &World) -> Result<(), Error> {
         for (module_id, snapshot_id) in self.modules.iter() {
             let memory_path = MemoryPath::new(world.memory_path(module_id));
             let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
