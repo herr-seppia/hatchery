@@ -91,9 +91,10 @@ impl World {
         for (module_id, environment) in w.environments.iter() {
             let memory_path = MemoryPath::new(self.memory_path(module_id));
             let snapshot = Snapshot::new(&memory_path)?;
-            environment.inner_mut().set_snapshot_id(snapshot.id());
+            environment.inner_mut().add_snapshot_id(snapshot.id());
             world_snapshot_id.xor(&snapshot.id());
             snapshot.save(&memory_path)?;
+            environment.inner_mut().set_dirty(false);
             println!(
                 "persisted state of module: {:?} to file: {:?}",
                 module_id_to_name(*module_id),
@@ -102,12 +103,13 @@ impl World {
         }
         Ok(world_snapshot_id)
     }
+
     pub fn restore(&self) -> Result<(), Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
         for (module_id, environment) in w.environments.iter() {
             let memory_path = MemoryPath::new(self.memory_path(module_id));
-            if let Some(snapshot_id) = environment.inner().snapshot_id() {
+            if let Some(snapshot_id) = environment.inner().last_snapshot_id() {
                 let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
                 snapshot.load(&memory_path)?;
                 println!(
@@ -119,9 +121,22 @@ impl World {
         }
         Ok(())
     }
+
+    pub fn is_dirty(&self) -> bool {
+        let guard = self.0.lock();
+        let w = unsafe { &mut *guard.get() };
+        for environment in w.environments.values() {
+            if environment.inner().is_dirty() {
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn memory_path(&self, module_id: &ModuleId) -> PathBuf {
         self.storage_path().join(module_id_to_name(*module_id))
     }
+
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
         let id_bytes: [u8; MODULE_ID_BYTES] = blake3::hash(bytecode).into();
         let id = ModuleId::from(id_bytes);

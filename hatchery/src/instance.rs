@@ -30,7 +30,8 @@ pub struct Instance {
     arg_buf_len: i32,
     heap_base: i32,
     self_id_ofs: i32,
-    snapshot_id: Option<SnapshotId>,
+    snapshot_ids: Vec<SnapshotId>,
+    dirty: bool,
 }
 
 impl Instance {
@@ -54,7 +55,8 @@ impl Instance {
             arg_buf_len,
             heap_base,
             self_id_ofs,
-            snapshot_id: None,
+            snapshot_ids: vec![],
+            dirty: true,
         }
     }
 
@@ -100,7 +102,9 @@ impl Instance {
         let ret_pos = {
             let arg_ofs = self.write_to_arg_buffer(arg)?;
 
-            self.perform_transaction(name, arg_ofs)?
+            let r = self.perform_transaction(name, arg_ofs)?;
+            self.set_dirty(true);
+            r
         };
 
         self.read_from_arg_buffer(ret_pos)
@@ -208,12 +212,22 @@ impl Instance {
         self.id
     }
 
-    pub(crate) fn set_snapshot_id(&mut self, snapshot_id: SnapshotId) {
-        self.snapshot_id = Some(snapshot_id);
+    pub(crate) fn add_snapshot_id(&mut self, snapshot_id: SnapshotId) {
+        self.snapshot_ids.push(snapshot_id);
     }
-    pub fn snapshot_id(&self) -> Option<&SnapshotId> {
-        self.snapshot_id.as_ref()
+
+    pub fn last_snapshot_id(&self) -> Option<&SnapshotId> {
+        self.snapshot_ids.last()
     }
+
+    pub(crate) fn set_dirty(&mut self, dirty: bool) {
+        self.dirty = dirty;
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
+    }
+
     pub(crate) fn world(&self) -> &World {
         &self.world
     }
