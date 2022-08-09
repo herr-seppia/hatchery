@@ -18,6 +18,7 @@ use wasmer::NativeFunc;
 use crate::error::*;
 use crate::memory::MemHandler;
 use crate::snapshot::SnapshotId;
+use crate::snapshot_bag::SnapshotBag;
 use crate::world::World;
 
 #[derive(Debug)]
@@ -30,7 +31,7 @@ pub struct Instance {
     arg_buf_len: i32,
     heap_base: i32,
     self_id_ofs: i32,
-    snapshot_ids: Vec<SnapshotId>,
+    snapshot_bag: SnapshotBag,
     dirty: bool,
 }
 
@@ -55,7 +56,7 @@ impl Instance {
             arg_buf_len,
             heap_base,
             self_id_ofs,
-            snapshot_ids: vec![],
+            snapshot_bag: SnapshotBag::new(),
             dirty: true,
         }
     }
@@ -212,21 +213,12 @@ impl Instance {
         self.id
     }
 
-    pub(crate) fn add_snapshot_id(&mut self, snapshot_id: SnapshotId) -> &Vec<SnapshotId> {
-        self.snapshot_ids.push(snapshot_id);
-        &self.snapshot_ids
+    pub(crate) fn snapshot_bag(&mut self) -> &SnapshotBag {
+        &self.snapshot_bag
     }
 
-    pub fn last_snapshot_id(&self) -> Option<&SnapshotId> {
-        self.snapshot_ids.last()
-    }
-
-    pub fn snapshot_id(&self, index: usize) -> Option<&SnapshotId> {
-        self.snapshot_ids.get(index)
-    }
-
-    pub fn snapshot_ids(&self, index: usize) -> &[SnapshotId] {
-        &self.snapshot_ids[..index]
+    pub(crate) fn snapshot_bag_mut(&mut self) -> &mut SnapshotBag {
+        &mut self.snapshot_bag
     }
 
     pub(crate) fn set_dirty(&mut self, dirty: bool) {
@@ -248,42 +240,42 @@ impl Instance {
             .get_memory("memory")
             .expect("memory export is checked at module creation time");
 
-        println!("memory snapshot");
+        // println!("memory snapshot");
 
-        let maybe_interesting = unsafe { mem.data_unchecked_mut() };
+        // let maybe_interesting = unsafe { mem.data_unchecked_mut() };
 
-        const CSZ: usize = 128;
-        const RSZ: usize = 16;
+        // const CSZ: usize = 128;
+        // const RSZ: usize = 16;
 
-        for (chunk_nr, chunk) in maybe_interesting.chunks(CSZ).enumerate() {
-            if chunk[..] != [0; CSZ][..] {
-                for (row_nr, row) in chunk.chunks(RSZ).enumerate() {
-                    let ofs = chunk_nr * CSZ + row_nr * RSZ;
-
-                    print!("{:08x}:", ofs);
-
-                    for (i, byte) in row.iter().enumerate() {
-                        if i % 4 == 0 {
-                            print!(" ");
-                        }
-
-                        let buf_start = self.arg_buf_ofs as usize;
-                        let buf_end = buf_start + self.arg_buf_len as usize;
-                        let heap_base = self.heap_base as usize;
-
-                        if ofs + i >= buf_start && ofs + i < buf_end {
-                            print!("{}", format!("{:02x}", byte).red());
-                            print!(" ");
-                        } else if ofs + i >= heap_base {
-                            print!("{}", format!("{:02x} ", byte).green());
-                        } else {
-                            print!("{:02x} ", byte)
-                        }
-                    }
-
-                    println!();
-                }
-            }
-        }
+        // for (chunk_nr, chunk) in maybe_interesting.chunks(CSZ).enumerate() {
+        //     if chunk[..] != [0; CSZ][..] {
+        //         for (row_nr, row) in chunk.chunks(RSZ).enumerate() {
+        //             let ofs = chunk_nr * CSZ + row_nr * RSZ;
+        //
+        //             print!("{:08x}:", ofs);
+        //
+        //             for (i, byte) in row.iter().enumerate() {
+        //                 if i % 4 == 0 {
+        //                     print!(" ");
+        //                 }
+        //
+        //                 let buf_start = self.arg_buf_ofs as usize;
+        //                 let buf_end = buf_start + self.arg_buf_len as usize;
+        //                 let heap_base = self.heap_base as usize;
+        //
+        //                 if ofs + i >= buf_start && ofs + i < buf_end {
+        //                     print!("{}", format!("{:02x}", byte).red());
+        //                     print!(" ");
+        //                 } else if ofs + i >= heap_base {
+        //                     print!("{}", format!("{:02x} ", byte).green());
+        //                 } else {
+        //                     print!("{:02x} ", byte)
+        //                 }
+        //             }
+        //
+        //             println!();
+        //         }
+        //     }
+        // }
     }
 }

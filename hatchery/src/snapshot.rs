@@ -16,7 +16,7 @@ use std::fs::OpenOptions;
 use std::mem;
 use bsdiff::diff::diff;
 use bsdiff::patch::patch;
-
+use rand::Rng;
 use rkyv::{Archive, Deserialize, Serialize};
 
 const COMPRESSION_LEVEL: i32 = 11;
@@ -39,6 +39,10 @@ pub struct SnapshotId([u8; SNAPSHOT_ID_BYTES]);
 impl SnapshotId {
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+    pub fn random() -> SnapshotId {
+        let mut data = rand::thread_rng().gen::<[u8; SNAPSHOT_ID_BYTES]>();
+        SnapshotId(data)
     }
 }
 impl From<[u8; 32]> for SnapshotId {
@@ -110,6 +114,18 @@ impl Snapshot {
         })
     }
 
+    pub fn save_from_snapshot(&self, snapshot: &dyn SnapshotLike) -> Result<(), Error> {
+        std::fs::copy(snapshot.path(), self.path().as_path())
+            .map_err(PersistenceError)?;
+        Ok(())
+    }
+
+    pub fn restore_this(&self, memory_path: &MemoryPath) -> Result<(), Error> {
+        std::fs::copy(self.path().as_path(), memory_path.path())
+            .map_err(PersistenceError)?;
+        Ok(())
+    }
+
     /// Saves current snapshot as uncompressed file.
     pub fn save(&self, memory_path: &MemoryPath, snapshot_ids: &Vec<SnapshotId>) -> Result<(), Error> {
         if snapshot_ids.len() == 1 {
@@ -128,7 +144,7 @@ impl Snapshot {
     }
 
     /// Saves current snapshot as compressed file.
-    fn save_compressed(
+    pub fn save_compressed(
         &self,
         base_snapshot: &Snapshot,
         memory_path: &MemoryPath,
@@ -197,7 +213,7 @@ impl Snapshot {
     pub fn decompress(
         &self,
         snapshot_to_patch: &Snapshot,
-        memory_path: &MemoryPath,
+        memory_path: &dyn SnapshotLike,
     ) -> Result<(), Error> {
         let (original_len, uncompressed_size, compressed) =
             self.read_compressed()?;

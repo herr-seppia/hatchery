@@ -95,10 +95,9 @@ impl World {
         for (module_id, environment) in w.environments.iter() {
             let memory_path = MemoryPath::new(self.memory_path(module_id));
             let snapshot = Snapshot::new(&memory_path)?;
-            let snapshot_ids = environment.inner_mut().add_snapshot_id(snapshot.id());
-            let snapshot_index = snapshot_ids.len() - 1;
+            let snapshot_bag = environment.inner_mut().snapshot_bag_mut();
             world_snapshot_id.xor(&snapshot.id());
-            snapshot.save(&memory_path, snapshot_ids)?;
+            let snapshot_index = snapshot_bag.save_snapshot(&snapshot, &memory_path)?;
             environment.inner_mut().set_dirty(false);
             world_snapshot.add(*module_id, snapshot_index);
             println!(
@@ -135,13 +134,12 @@ impl World {
         self.storage_path().join(module_id_to_name(*module_id))
     }
 
-    pub fn snapshot_from_index(&self, module_id: &ModuleId, snapshot_index: usize, memory_path: &MemoryPath) -> Result<(Snapshot, &[SnapshotId]), Error> {
+    pub fn restore_snapshot_with_index(&self, module_id: &ModuleId, snapshot_index: usize, memory_path: &MemoryPath) -> Result<(), Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
-        let instance = w.environments.get(module_id).expect("Invalid module id").inner();
-        let snapshot_id = instance.snapshot_id(snapshot_index).expect("Invalid snapshot index");
-        let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
-        Ok((snapshot,instance.snapshot_ids(snapshot_index+1)))
+        let instance = w.environments.get(module_id).expect("Invalid module id").inner_mut();
+        instance.snapshot_bag().restore_snapshot(snapshot_index, memory_path)?;
+        Ok(())
     }
 
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {

@@ -11,6 +11,7 @@ mod error;
 mod instance;
 mod memory;
 mod snapshot;
+mod snapshot_bag;
 mod storage_helpers;
 mod world;
 mod world_snapshot;

@@ -22,7 +22,7 @@ impl MemHandler {
         self.align_to(align);
         let ofs = self.heap_base;
         self.heap_base += size;
-        println!("allocating {} bytes at {:08x}", size, ofs);
+        // println!("allocating {} bytes at {:08x}", size, ofs);
         ofs
     }
 }
