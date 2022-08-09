@@ -115,6 +115,7 @@ impl Snapshot {
     }
 
     pub fn save_from_snapshot(&self, snapshot: &dyn SnapshotLike) -> Result<(), Error> {
+        println!("copy {:?} to {:?}", snapshot.path(), self.path.as_path());
         std::fs::copy(snapshot.path(), self.path().as_path())
             .map_err(PersistenceError)?;
         Ok(())
@@ -127,19 +128,10 @@ impl Snapshot {
     }
 
     /// Saves current snapshot as uncompressed file.
-    pub fn save(&self, memory_path: &MemoryPath, snapshot_ids: &Vec<SnapshotId>) -> Result<(), Error> {
-        if snapshot_ids.len() == 1 {
-            println!("saving uncompressed {}", snapshot_id_to_name(self.id));
-            std::fs::copy(memory_path.path(), self.path().as_path())
-                .map_err(PersistenceError)?;
-        }
-        else if snapshot_ids.len() == 2 {
-            let base_snapshot = Snapshot::from_id(*snapshot_ids.get(0).unwrap(), memory_path)?;
-            println!("saving compressed {}", snapshot_id_to_name(self.id));
-            self.save_compressed(&base_snapshot, memory_path);
-        } else {
-            unreachable!("case not implemented: snapshot_ids.len() == 0 or more than 2")// todo
-        }
+    pub fn save(&self, memory_path: &MemoryPath) -> Result<(), Error> {
+        println!("saving uncompressed {}", snapshot_id_to_name(self.id));
+        std::fs::copy(memory_path.path(), self.path().as_path())
+            .map_err(PersistenceError)?;
         Ok(())
     }
 

@@ -8,7 +8,7 @@ use dallo::ModuleId;
 use hatchery::{module_bytecode, Error, Receipt, World};
 use std::path::PathBuf;
 
-#[test]
+#[ignore]
 pub fn box_set_get() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
@@ -27,7 +27,7 @@ pub fn box_set_get() -> Result<(), Error> {
     Ok(())
 }
 
-#[test]
+#[ignore]
 pub fn box_set_store_restore_get() -> Result<(), Error> {
     let mut storage_path = PathBuf::new();
     let first_id: ModuleId;
@@ -98,13 +98,22 @@ pub fn world_persist_restore() -> Result<(), Error> {
     assert_eq!(*value, Some(18));
     let snapshot2 = world.persist()?;
 
-    // world.restore(&snapshot1)?;
-    // let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    // assert_eq!(*value, Some(17));
+    let _: Receipt<()> = world.transact(id, "set", 19)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(19));
+    let snapshot3 = world.persist()?;
 
-    // world.restore(&snapshot2)?;
-    // let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    // assert_eq!(*value, Some(18));
+    world.restore(&snapshot1)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(17));
+
+    world.restore(&snapshot2)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(18));
+
+    world.restore(&snapshot3)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(19));
 
     Ok(())
 }
