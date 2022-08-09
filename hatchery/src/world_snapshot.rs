@@ -70,8 +70,8 @@ impl WorldSnapshot {
     pub fn restore_snapshots(&self, world: &World) -> Result<(), Error> {
         for (module_id, snapshot_index) in self.snapshot_indices.iter() {
             let memory_path = MemoryPath::new(world.memory_path(module_id));
-            let snapshot = world.snapshot_from_index(module_id, *snapshot_index, &memory_path)?;
-            snapshot.load(&memory_path)?;
+            let (snapshot, snapshot_ids) = world.snapshot_from_index(module_id, *snapshot_index, &memory_path)?;
+            snapshot.load(&memory_path, snapshot_ids)?;
         }
         Ok(())
     }

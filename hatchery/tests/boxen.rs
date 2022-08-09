@@ -56,29 +56,7 @@ pub fn box_set_store_restore_get() -> Result<(), Error> {
     Ok(())
 }
 
-#[test]
-pub fn world_persist_restore() -> Result<(), Error> {
-    let mut world = World::ephemeral()?;
-    let id = world.deploy(module_bytecode!("box"))?;
-
-    let _: Receipt<()> = world.transact(id, "set", 17)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(17));
-
-    world.persist()?;
-
-    let _: Receipt<()> = world.transact(id, "set", 18)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(18));
-
-    world.restore_last()?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(17));
-
-    Ok(())
-}
-
-#[test]
+#[ignore]
 pub fn world_persist_dirty_flag() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
     let id = world.deploy(module_bytecode!("box"))?;
@@ -106,7 +84,7 @@ pub fn world_persist_dirty_flag() -> Result<(), Error> {
 }
 
 #[test]
-pub fn world_persist_restore_different_snapshots() -> Result<(), Error> {
+pub fn world_persist_restore() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
     let id = world.deploy(module_bytecode!("box"))?;
 

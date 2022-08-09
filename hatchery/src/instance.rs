@@ -225,6 +225,10 @@ impl Instance {
         self.snapshot_ids.get(index)
     }
 
+    pub fn snapshot_ids(&self, index: usize) -> &[SnapshotId] {
+        &self.snapshot_ids[..index]
+    }
+
     pub(crate) fn set_dirty(&mut self, dirty: bool) {
         self.dirty = dirty;
     }

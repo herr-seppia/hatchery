@@ -4,6 +4,8 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
+extern crate core;
+
 mod env;
 mod error;
 mod instance;

@@ -27,7 +27,7 @@ use crate::env::Env;
 use crate::error::Error;
 use crate::instance::Instance;
 use crate::memory::MemHandler;
-use crate::snapshot::{MemoryPath, Snapshot, SnapshotLike};
+use crate::snapshot::{MemoryPath, Snapshot, SnapshotId, SnapshotLike};
 use crate::storage_helpers::module_id_to_name;
 use crate::Error::PersistenceError;
 use crate::world_snapshot::{WorldSnapshot, WorldSnapshotId};
@@ -112,19 +112,6 @@ impl World {
         Ok(world_snapshot_id)
     }
 
-    pub fn restore_last(&self) -> Result<(), Error> {
-        let guard = self.0.lock();
-        let w = unsafe { &mut *guard.get() };
-        for (module_id, environment) in w.environments.iter() {
-            let memory_path = MemoryPath::new(self.memory_path(module_id));
-            if let Some(snapshot_id) = environment.inner().last_snapshot_id() {
-                let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
-                snapshot.load(&memory_path)?;
-            }
-        }
-        Ok(())
-    }
-
     pub fn restore(&self, world_snapshot_id: &WorldSnapshotId) -> Result<(), Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
@@ -148,13 +135,13 @@ impl World {
         self.storage_path().join(module_id_to_name(*module_id))
     }
 
-    pub fn snapshot_from_index(&self, module_id: &ModuleId, snapshot_index: usize, memory_path: &MemoryPath) -> Result<Snapshot, Error> {
+    pub fn snapshot_from_index(&self, module_id: &ModuleId, snapshot_index: usize, memory_path: &MemoryPath) -> Result<(Snapshot, &[SnapshotId]), Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
         let instance = w.environments.get(module_id).expect("Invalid module id").inner();
         let snapshot_id = instance.snapshot_id(snapshot_index).expect("Invalid snapshot index");
         let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
-        Ok(snapshot)
+        Ok((snapshot,instance.snapshot_ids(snapshot_index+1)))
     }
 
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
