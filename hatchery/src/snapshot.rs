@@ -110,17 +110,6 @@ impl Snapshot {
         })
     }
 
-    pub fn from_buffer(
-        buf: Vec<u8>,
-        memory_path: &MemoryPath,
-    ) -> Result<Self, Error> {
-        let id_bytes: [u8; SNAPSHOT_ID_BYTES] = blake3::hash(buf.as_slice()).into();
-        let snapshot_id = SnapshotId::from(id_bytes);
-        let snapshot = Snapshot::from_id(snapshot_id, memory_path)?;
-        snapshot.write(buf)?;
-        Ok(snapshot)
-    }
-
     /// Saves current snapshot as uncompressed file.
     pub fn save(&self, memory_path: &MemoryPath, snapshot_ids: &Vec<SnapshotId>) -> Result<(), Error> {
         if snapshot_ids.len() == 1 {
@@ -227,9 +216,14 @@ impl Snapshot {
             .map_err(PersistenceError)?;
 
         // copy contents of 'patched' to memory_path.path()
-        let restored_snapshot = Snapshot::from_buffer(patched, memory_path)?;
-        std::fs::copy(restored_snapshot.path().as_path(), memory_path.path())
+        let mut file = OpenOptions::new() // todo refactor into a method
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(memory_path.path())
             .map_err(PersistenceError)?;
+        file.write_all(patched.as_slice()).map_err(PersistenceError)?;
+
         Ok(())
     }
 
