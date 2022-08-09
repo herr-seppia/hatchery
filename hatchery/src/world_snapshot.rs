@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use dallo::ModuleId;
 
 use rkyv::{Archive, Deserialize, Serialize};
-use crate::snapshot::{Snapshot, SnapshotId, MemoryPath};
+use crate::snapshot::{SnapshotId, MemoryPath};
 use crate::error::Error;
 use crate::world::World;
 
@@ -51,26 +51,26 @@ impl From<[u8; 32]> for WorldSnapshotId {
 #[derive(Debug)]
 pub struct WorldSnapshot {
     id: WorldSnapshotId,
-    modules: BTreeMap<ModuleId, SnapshotId>,
+    snapshot_indices: BTreeMap<ModuleId, usize>,
 }
 
 impl WorldSnapshot {
     pub fn new() -> Self {
         Self {
             id: WorldSnapshotId::uninitialized(),
-            modules: BTreeMap::new(),
+            snapshot_indices: BTreeMap::new(),
         }
     }
-    pub fn add(&mut self, module_id: ModuleId, snapshot_id: SnapshotId) {
-        self.modules.insert(module_id, snapshot_id);
+    pub fn add(&mut self, module_id: ModuleId, snapshot_index: usize) {
+        self.snapshot_indices.insert(module_id, snapshot_index);
     }
     pub fn finalize_id(&mut self, world_snapshot_id: WorldSnapshotId){
         self.id = world_snapshot_id
     }
     pub fn restore_snapshots(&self, world: &World) -> Result<(), Error> {
-        for (module_id, snapshot_id) in self.modules.iter() {
+        for (module_id, snapshot_index) in self.snapshot_indices.iter() {
             let memory_path = MemoryPath::new(world.memory_path(module_id));
-            let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
+            let snapshot = world.snapshot_from_index(module_id, *snapshot_index, &memory_path)?;
             snapshot.load(&memory_path)?;
         }
         Ok(())

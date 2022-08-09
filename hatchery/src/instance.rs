@@ -212,12 +212,17 @@ impl Instance {
         self.id
     }
 
-    pub(crate) fn add_snapshot_id(&mut self, snapshot_id: SnapshotId) {
+    pub(crate) fn add_snapshot_id(&mut self, snapshot_id: SnapshotId) -> usize {
         self.snapshot_ids.push(snapshot_id);
+        self.snapshot_ids.len() - 1
     }
 
     pub fn last_snapshot_id(&self) -> Option<&SnapshotId> {
         self.snapshot_ids.last()
+    }
+
+    pub fn snapshot_id(&self, index: usize) -> Option<&SnapshotId> {
+        self.snapshot_ids.get(index)
     }
 
     pub(crate) fn set_dirty(&mut self, dirty: bool) {

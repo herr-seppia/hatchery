@@ -95,11 +95,11 @@ impl World {
         for (module_id, environment) in w.environments.iter() {
             let memory_path = MemoryPath::new(self.memory_path(module_id));
             let snapshot = Snapshot::new(&memory_path)?;
-            environment.inner_mut().add_snapshot_id(snapshot.id());
+            let snapshot_index = environment.inner_mut().add_snapshot_id(snapshot.id());
             world_snapshot_id.xor(&snapshot.id());
             snapshot.save(&memory_path)?;
             environment.inner_mut().set_dirty(false);
-            world_snapshot.add(*module_id, snapshot.id());
+            world_snapshot.add(*module_id, snapshot_index);
             println!(
                 "persisted state of module: {:?} to file: {:?}",
                 module_id_to_name(*module_id),
@@ -145,6 +145,15 @@ impl World {
 
     pub fn memory_path(&self, module_id: &ModuleId) -> PathBuf {
         self.storage_path().join(module_id_to_name(*module_id))
+    }
+
+    pub fn snapshot_from_index(&self, module_id: &ModuleId, snapshot_index: usize, memory_path: &MemoryPath) -> Result<Snapshot, Error> {
+        let guard = self.0.lock();
+        let w = unsafe { &mut *guard.get() };
+        let instance = w.environments.get(module_id).expect("Invalid module id").inner();
+        let snapshot_id = instance.snapshot_id(snapshot_index).expect("Invalid snapshot index");
+        let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
+        Ok(snapshot)
     }
 
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
