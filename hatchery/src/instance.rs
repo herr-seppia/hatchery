@@ -212,9 +212,9 @@ impl Instance {
         self.id
     }
 
-    pub(crate) fn add_snapshot_id(&mut self, snapshot_id: SnapshotId) -> usize {
+    pub(crate) fn add_snapshot_id(&mut self, snapshot_id: SnapshotId) -> &Vec<SnapshotId> {
         self.snapshot_ids.push(snapshot_id);
-        self.snapshot_ids.len() - 1
+        &self.snapshot_ids
     }
 
     pub fn last_snapshot_id(&self) -> Option<&SnapshotId> {

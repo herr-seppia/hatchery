@@ -95,9 +95,10 @@ impl World {
         for (module_id, environment) in w.environments.iter() {
             let memory_path = MemoryPath::new(self.memory_path(module_id));
             let snapshot = Snapshot::new(&memory_path)?;
-            let snapshot_index = environment.inner_mut().add_snapshot_id(snapshot.id());
+            let snapshot_ids = environment.inner_mut().add_snapshot_id(snapshot.id());
+            let snapshot_index = snapshot_ids.len() - 1;
             world_snapshot_id.xor(&snapshot.id());
-            snapshot.save(&memory_path)?;
+            snapshot.save(&memory_path, snapshot_ids)?;
             environment.inner_mut().set_dirty(false);
             world_snapshot.add(*module_id, snapshot_index);
             println!(

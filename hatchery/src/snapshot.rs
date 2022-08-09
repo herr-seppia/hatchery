@@ -103,7 +103,7 @@ impl Snapshot {
     }
 
     /// Saves current snapshot as uncompressed file.
-    pub fn save(&self, memory_path: &MemoryPath) -> Result<(), Error> {
+    pub fn save(&self, memory_path: &MemoryPath, _snapshot_ids: &Vec<SnapshotId>) -> Result<(), Error> {
         std::fs::copy(memory_path.path(), self.path().as_path())
             .map_err(PersistenceError)?;
         Ok(())
