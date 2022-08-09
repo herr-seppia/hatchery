@@ -61,6 +61,7 @@ impl SnapshotBag {
             base_snapshot.restore_this(memory_path)
         } else if self.ids.len() == (snapshot_index + 1) {
             let top_snapshot = Snapshot::from_id(self.top, memory_path)?;
+            println!("taken from top");
             top_snapshot.restore_this(memory_path)
         } else if snapshot_index == 0 {
             let base_snapshot = Snapshot::from_id(*self.ids.get(0).unwrap(), memory_path)?;
@@ -69,9 +70,11 @@ impl SnapshotBag {
             let accu_snapshot = Snapshot::from_id(self.accu, memory_path)?;
             let base_snapshot = Snapshot::from_id(*self.ids.get(0).unwrap(), memory_path)?;
             let snapshot = Snapshot::from_id(*self.ids.get(1).unwrap(), memory_path)?;
+            println!("decompress1");
             snapshot.decompress(&base_snapshot, &accu_snapshot)?;
             for i in 2..(snapshot_index + 1) {
                 let snapshot = Snapshot::from_id(*self.ids.get(i).unwrap(), memory_path)?;
+                println!("decompress2 {}", i);
                 snapshot.decompress(&accu_snapshot, &accu_snapshot)?;
             }
             accu_snapshot.restore_this(memory_path)

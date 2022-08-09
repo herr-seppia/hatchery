@@ -103,6 +103,16 @@ pub fn world_persist_restore() -> Result<(), Error> {
     assert_eq!(*value, Some(19));
     let snapshot3 = world.persist()?;
 
+    let _: Receipt<()> = world.transact(id, "set", 20)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(20));
+    let snapshot4 = world.persist()?;
+
+    let _: Receipt<()> = world.transact(id, "set", 21)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(21));
+    let snapshot5 = world.persist()?;
+
     world.restore(&snapshot1)?;
     let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
     assert_eq!(*value, Some(17));
@@ -114,6 +124,14 @@ pub fn world_persist_restore() -> Result<(), Error> {
     world.restore(&snapshot3)?;
     let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
     assert_eq!(*value, Some(19));
+
+    world.restore(&snapshot4)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(20));
+
+    world.restore(&snapshot5)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(21));
 
     Ok(())
 }
