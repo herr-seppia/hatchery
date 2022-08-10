@@ -102,14 +102,7 @@ pub fn world_persist_restore() -> Result<(), Error> {
     let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
     assert_eq!(*value, Some(19));
     let snapshot3 = world.persist()?;
-    let _: Receipt<()> = world.transact(id, "set", 20)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(20));
-    let snapshot4 = world.persist()?;
-    let _: Receipt<()> = world.transact(id, "set", 21)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(21));
-    let snapshot5 = world.persist()?;
+
     world.restore(&snapshot1)?;
     let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
     assert_eq!(*value, Some(17));
@@ -121,11 +114,39 @@ pub fn world_persist_restore() -> Result<(), Error> {
     world.restore(&snapshot3)?;
     let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
     assert_eq!(*value, Some(19));
-    world.restore(&snapshot4)?;
+    Ok(())
+}
+
+#[test]
+pub fn world_persist_restore_interleaved() -> Result<(), Error> {
+    let mut world = World::ephemeral()?;
+    let id = world.deploy(module_bytecode!("box"))?;
+
+    let _: Receipt<()> = world.transact(id, "set", 17)?;
     let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(20));
-    world.restore(&snapshot5)?;
+    assert_eq!(*value, Some(17));
+    let snapshot1 = world.persist()?;
+
+    let _: Receipt<()> = world.transact(id, "set", 18)?;
     let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(21));
+    assert_eq!(*value, Some(18));
+    let snapshot2 = world.persist()?;
+
+    let _: Receipt<()> = world.transact(id, "set", 19)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(19));
+    let snapshot3 = world.persist()?;
+
+    world.restore(&snapshot2)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(18));
+
+    world.restore(&snapshot3)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(19));
+
+    world.restore(&snapshot1)?;
+    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+    assert_eq!(*value, Some(17));
     Ok(())
 }

@@ -17,7 +17,6 @@ use wasmer::NativeFunc;
 
 use crate::error::*;
 use crate::memory::MemHandler;
-use crate::snapshot::SnapshotId;
 use crate::snapshot_bag::SnapshotBag;
 use crate::world::World;
 

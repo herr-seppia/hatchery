@@ -27,7 +27,7 @@ use crate::env::Env;
 use crate::error::Error;
 use crate::instance::Instance;
 use crate::memory::MemHandler;
-use crate::snapshot::{MemoryPath, Snapshot, SnapshotId, SnapshotLike};
+use crate::snapshot::{MemoryPath, Snapshot, SnapshotLike};
 use crate::storage_helpers::module_id_to_name;
 use crate::Error::PersistenceError;
 use crate::world_snapshot::{WorldSnapshot, WorldSnapshotId};

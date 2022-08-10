@@ -41,8 +41,7 @@ impl SnapshotId {
         &self.0
     }
     pub fn random() -> SnapshotId {
-        let mut data = rand::thread_rng().gen::<[u8; SNAPSHOT_ID_BYTES]>();
-        SnapshotId(data)
+        SnapshotId(rand::thread_rng().gen::<[u8; SNAPSHOT_ID_BYTES]>())
     }
 }
 impl From<[u8; 32]> for SnapshotId {
@@ -120,7 +119,7 @@ impl Snapshot {
             .map_err(PersistenceError)?;
         Ok(())
     }
-    pub fn restore_this(&self, memory_path: &MemoryPath) -> Result<(), Error> {
+    pub fn restore(&self, memory_path: &MemoryPath) -> Result<(), Error> {
         std::fs::copy(self.path().as_path(), memory_path.path())
             .map_err(PersistenceError)?;
         Ok(())
@@ -178,6 +177,7 @@ impl Snapshot {
     }
 
     /// Restores current snapshot from uncompressed file.
+    #[allow(dead_code)]
     pub fn load(&self, memory_path: &MemoryPath, snapshot_ids: &[SnapshotId]) -> Result<(), Error> {
         if snapshot_ids.len() == 1 {
             println!("load decompressed from {:?}", self.path());
@@ -197,13 +197,12 @@ impl Snapshot {
         }
     }
 
-    /// Decompresses current snapshot as patch and patches with it a given
-    /// snapshot. The result will be returned in a new snapshot
-    /// equivalent to given memory path.
+    /// Decompresses current snapshot as a patch and patches with it a given snapshot.
+    /// Result will be written to a target snapshot.
     pub fn decompress(
         &self,
         snapshot_to_patch: &Snapshot,
-        memory_path: &dyn SnapshotLike,
+        target_snapshot: &dyn SnapshotLike,
     ) -> Result<(), Error> {
         let (original_len, uncompressed_size, compressed) =
             self.read_compressed()?;
@@ -226,7 +225,7 @@ impl Snapshot {
             .write(true)
             .create(true)
             .truncate(true)
-            .open(memory_path.path())
+            .open(target_snapshot.path())
             .map_err(PersistenceError)?;
         file.write_all(patched.as_slice()).map_err(PersistenceError)?;
 
@@ -249,6 +248,7 @@ impl Snapshot {
     }
 
     /// Writes buffer to file at snapshot's path.
+    #[allow(dead_code)]
     fn write(&self, buf: Vec<u8>) -> Result<(), Error> {
         let mut file = OpenOptions::new()
             .write(true)
