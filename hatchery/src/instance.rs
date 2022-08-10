@@ -218,8 +218,6 @@ impl Instance {
 
     pub(crate) fn snapshot_bag_mut(&mut self) -> &mut SnapshotBag {
         &mut self.snapshot_bag
-
-
     }
 
     pub(crate) fn set_dirty(&mut self, dirty: bool) {

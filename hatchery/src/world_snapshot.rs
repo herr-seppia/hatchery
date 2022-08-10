@@ -8,10 +8,10 @@ use std::collections::BTreeMap;
 
 use dallo::ModuleId;
 
-use rkyv::{Archive, Deserialize, Serialize};
-use crate::snapshot::{SnapshotId, MemoryPath};
 use crate::error::Error;
+use crate::snapshot::{MemoryPath, SnapshotId};
 use crate::world::World;
+use rkyv::{Archive, Deserialize, Serialize};
 
 pub const WORLD_SNAPSHOT_ID_BYTES: usize = 32;
 #[derive(
@@ -64,13 +64,17 @@ impl WorldSnapshot {
     pub fn add(&mut self, module_id: ModuleId, snapshot_index: usize) {
         self.snapshot_indices.insert(module_id, snapshot_index);
     }
-    pub fn finalize_id(&mut self, world_snapshot_id: WorldSnapshotId){
+    pub fn finalize_id(&mut self, world_snapshot_id: WorldSnapshotId) {
         self.id = world_snapshot_id
     }
     pub fn restore_snapshots(&self, world: &World) -> Result<(), Error> {
         for (module_id, snapshot_index) in self.snapshot_indices.iter() {
             let memory_path = MemoryPath::new(world.memory_path(module_id));
-            world.restore_snapshot_with_index(module_id, *snapshot_index, &memory_path)?;
+            world.restore_snapshot_with_index(
+                module_id,
+                *snapshot_index,
+                &memory_path,
+            )?;
         }
         Ok(())
     }

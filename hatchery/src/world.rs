@@ -29,8 +29,8 @@ use crate::instance::Instance;
 use crate::memory::MemHandler;
 use crate::snapshot::{MemoryPath, Snapshot, SnapshotLike};
 use crate::storage_helpers::module_id_to_name;
-use crate::Error::PersistenceError;
 use crate::world_snapshot::{WorldSnapshot, WorldSnapshotId};
+use crate::Error::PersistenceError;
 
 #[derive(Debug)]
 pub struct WorldInner {
@@ -97,7 +97,8 @@ impl World {
             let snapshot = Snapshot::new(&memory_path)?;
             let snapshot_bag = environment.inner_mut().snapshot_bag_mut();
             world_snapshot_id.xor(&snapshot.id());
-            let snapshot_index = snapshot_bag.save_snapshot(&snapshot, &memory_path)?;
+            let snapshot_index =
+                snapshot_bag.save_snapshot(&snapshot, &memory_path)?;
             environment.inner_mut().set_dirty(false);
             world_snapshot.add(*module_id, snapshot_index);
             println!(
@@ -111,10 +112,16 @@ impl World {
         Ok(world_snapshot_id)
     }
 
-    pub fn restore(&self, world_snapshot_id: &WorldSnapshotId) -> Result<(), Error> {
+    pub fn restore(
+        &self,
+        world_snapshot_id: &WorldSnapshotId,
+    ) -> Result<(), Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
-        let world_snapshot: &WorldSnapshot = w.snapshots.get(world_snapshot_id).expect("snapshot not found");
+        let world_snapshot: &WorldSnapshot = w
+            .snapshots
+            .get(world_snapshot_id)
+            .expect("snapshot not found");
         world_snapshot.restore_snapshots(&self)?;
         Ok(())
     }
@@ -134,11 +141,22 @@ impl World {
         self.storage_path().join(module_id_to_name(*module_id))
     }
 
-    pub fn restore_snapshot_with_index(&self, module_id: &ModuleId, snapshot_index: usize, memory_path: &MemoryPath) -> Result<(), Error> {
+    pub fn restore_snapshot_with_index(
+        &self,
+        module_id: &ModuleId,
+        snapshot_index: usize,
+        memory_path: &MemoryPath,
+    ) -> Result<(), Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
-        let instance = w.environments.get(module_id).expect("Invalid module id").inner_mut();
-        instance.snapshot_bag().restore_snapshot(snapshot_index, memory_path)?;
+        let instance = w
+            .environments
+            .get(module_id)
+            .expect("Invalid module id")
+            .inner_mut();
+        instance
+            .snapshot_bag()
+            .restore_snapshot(snapshot_index, memory_path)?;
         Ok(())
     }
 

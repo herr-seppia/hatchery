@@ -9,15 +9,15 @@ use crate::storage_helpers::{
     combine_module_snapshot_names, snapshot_id_to_name,
 };
 use crate::Error::PersistenceError;
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use std::fs::OpenOptions;
-use std::mem;
 use bsdiff::diff::diff;
 use bsdiff::patch::patch;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use rand::Rng;
 use rkyv::{Archive, Deserialize, Serialize};
+use std::fs::OpenOptions;
+use std::io::{Read, Write};
+use std::mem;
+use std::path::{Path, PathBuf};
 
 const COMPRESSION_LEVEL: i32 = 11;
 
@@ -113,7 +113,10 @@ impl Snapshot {
         })
     }
 
-    pub fn save_from_snapshot(&self, snapshot: &dyn SnapshotLike) -> Result<(), Error> {
+    pub fn save_from_snapshot(
+        &self,
+        snapshot: &dyn SnapshotLike,
+    ) -> Result<(), Error> {
         println!("copy {:?} to {:?}", snapshot.path(), self.path.as_path());
         std::fs::copy(snapshot.path(), self.path().as_path())
             .map_err(PersistenceError)?;
@@ -126,9 +129,9 @@ impl Snapshot {
     }
     /// Saves current snapshot as uncompressed file.
     pub fn save(&self, memory_path: &MemoryPath) -> Result<(), Error> {
-            println!("saving uncompressed {}", snapshot_id_to_name(self.id));
-            std::fs::copy(memory_path.path(), self.path().as_path())
-                .map_err(PersistenceError)?;
+        println!("saving uncompressed {}", snapshot_id_to_name(self.id));
+        std::fs::copy(memory_path.path(), self.path().as_path())
+            .map_err(PersistenceError)?;
         Ok(())
     }
 
@@ -161,7 +164,11 @@ impl Snapshot {
         uncompressed_size: usize,
         original_len: usize,
     ) -> Result<(), Error> {
-        println!("writing compressed {} bytes to {:?}", buf.len(), self.path());
+        println!(
+            "writing compressed {} bytes to {:?}",
+            buf.len(),
+            self.path()
+        );
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -178,27 +185,36 @@ impl Snapshot {
 
     /// Restores current snapshot from uncompressed file.
     #[allow(dead_code)]
-    pub fn load(&self, memory_path: &MemoryPath, snapshot_ids: &[SnapshotId]) -> Result<(), Error> {
+    pub fn load(
+        &self,
+        memory_path: &MemoryPath,
+        snapshot_ids: &[SnapshotId],
+    ) -> Result<(), Error> {
         if snapshot_ids.len() == 1 {
             println!("load decompressed from {:?}", self.path());
             std::fs::copy(self.path().as_path(), memory_path.path())
                 .map_err(PersistenceError)?;
             Ok(())
         } else if snapshot_ids.len() == 2 {
-            let base_snapshot = Snapshot::from_id(*snapshot_ids.get(0).unwrap(), memory_path)?;
-            let compressed_snapshot = Snapshot::from_id(*snapshot_ids.get(1).unwrap(), memory_path)?;
-            println!("load compressed from {}", snapshot_id_to_name(compressed_snapshot.id));
+            let base_snapshot =
+                Snapshot::from_id(*snapshot_ids.get(0).unwrap(), memory_path)?;
+            let compressed_snapshot =
+                Snapshot::from_id(*snapshot_ids.get(1).unwrap(), memory_path)?;
+            println!(
+                "load compressed from {}",
+                snapshot_id_to_name(compressed_snapshot.id)
+            );
             compressed_snapshot.decompress(&base_snapshot, memory_path)?;
             Ok(())
         } else if snapshot_ids.len() == 0 {
-            unreachable!("todo0")// todo 0
+            unreachable!("todo0") // todo 0
         } else {
-            unreachable!("todoN>=2")// todo N>2
+            unreachable!("todoN>=2") // todo N>2
         }
     }
 
-    /// Decompresses current snapshot as a patch and patches with it a given snapshot.
-    /// Result will be written to a target snapshot.
+    /// Decompresses current snapshot as a patch and patches with it a given
+    /// snapshot. Result will be written to a target snapshot.
     pub fn decompress(
         &self,
         snapshot_to_patch: &Snapshot,
@@ -218,7 +234,7 @@ impl Snapshot {
             &mut patch_data,
             patched.as_mut_slice(),
         )
-            .map_err(PersistenceError)?;
+        .map_err(PersistenceError)?;
 
         // copy contents of 'patched' to memory_path.path()
         let mut file = OpenOptions::new() // todo refactor into a method
@@ -227,7 +243,8 @@ impl Snapshot {
             .truncate(true)
             .open(target_snapshot.path())
             .map_err(PersistenceError)?;
-        file.write_all(patched.as_slice()).map_err(PersistenceError)?;
+        file.write_all(patched.as_slice())
+            .map_err(PersistenceError)?;
 
         Ok(())
     }

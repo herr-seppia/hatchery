@@ -4,16 +4,20 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-use crate::snapshot::{MemoryPath, SnapshotId};
-use crate::Error::InvalidSnapshotIndex;
 use crate::error::Error;
 use crate::snapshot::Snapshot;
+use crate::snapshot::{MemoryPath, SnapshotId};
 use crate::storage_helpers::snapshot_id_to_name;
+use crate::Error::InvalidSnapshotIndex;
 
 #[derive(Debug)]
 pub struct SnapshotBag {
+    // first snapshot is always uncompressed
     ids: Vec<SnapshotId>,
+    // we keep top uncompressed snapshot to make save efficient
     top: SnapshotId,
+    // accu is needed for a series of compressed snapshots depending on each
+    // other
     accu: SnapshotId,
 }
 
@@ -25,7 +29,11 @@ impl SnapshotBag {
             accu: SnapshotId::random(),
         }
     }
-    pub fn save_snapshot(&mut self, snapshot: &Snapshot, memory_path: &MemoryPath) -> Result<usize, Error> {
+    pub fn save_snapshot(
+        &mut self,
+        snapshot: &Snapshot,
+        memory_path: &MemoryPath,
+    ) -> Result<usize, Error> {
         snapshot.save(memory_path)?;
         println!("save snapshot {}", snapshot_id_to_name(snapshot.id()));
         self.ids.push(snapshot.id());
@@ -42,7 +50,7 @@ impl SnapshotBag {
             accu_snapshot.save_from_snapshot(snapshot)?;
             println!("snapshot saved to accu, accu should be uncompressed, so should be snapshot");
             println!("compressing snapshot against top");
-            snapshot.save_compressed(&top_snapshot, memory_path)?;// now snapshot is compressed but accu keeps the uncompressed copy
+            snapshot.save_compressed(&top_snapshot, memory_path)?; // now snapshot is compressed but accu keeps the uncompressed copy
             println!("compressing done");
             println!("recreating top from accu");
             top_snapshot.save_from_snapshot(&accu_snapshot)?; // top is always the last uncompressed
@@ -50,9 +58,13 @@ impl SnapshotBag {
             Ok(self.ids.len() - 1)
         }
     }
-    pub fn restore_snapshot(&self, snapshot_index: usize, memory_path: &MemoryPath) -> Result<(), Error> {
+    pub fn restore_snapshot(
+        &self,
+        snapshot_index: usize,
+        memory_path: &MemoryPath,
+    ) -> Result<(), Error> {
         if (snapshot_index + 1) > self.ids.len() {
-            return Err(InvalidSnapshotIndex)
+            return Err(InvalidSnapshotIndex);
         }
         if self.ids.len() == 1 || snapshot_index == 0 {
             Snapshot::from_id(self.ids[0], memory_path)?.restore(memory_path)
