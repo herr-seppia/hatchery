@@ -174,36 +174,6 @@ impl Snapshot {
         Ok(())
     }
 
-    /// Restores current snapshot from uncompressed file.
-    #[allow(dead_code)]
-    pub fn load(
-        &self,
-        memory_path: &MemoryPath,
-        snapshot_ids: &[SnapshotId],
-    ) -> Result<(), Error> {
-        if snapshot_ids.len() == 1 {
-            println!("load decompressed from {:?}", self.path());
-            std::fs::copy(self.path().as_path(), memory_path.path())
-                .map_err(PersistenceError)?;
-            Ok(())
-        } else if snapshot_ids.len() == 2 {
-            let base_snapshot =
-                Snapshot::from_id(*snapshot_ids.get(0).unwrap(), memory_path)?;
-            let compressed_snapshot =
-                Snapshot::from_id(*snapshot_ids.get(1).unwrap(), memory_path)?;
-            println!(
-                "load compressed from {}",
-                snapshot_id_to_name(compressed_snapshot.id)
-            );
-            compressed_snapshot.decompress(&base_snapshot, memory_path)?;
-            Ok(())
-        } else if snapshot_ids.len() == 0 {
-            unreachable!("todo0") // todo 0
-        } else {
-            unreachable!("todoN>=2") // todo N>2
-        }
-    }
-
     /// Decompresses current snapshot as a patch and patches with it a given
     /// snapshot. Result will be written to a target snapshot.
     pub fn decompress(
@@ -227,8 +197,7 @@ impl Snapshot {
         )
         .map_err(PersistenceError)?;
 
-        // copy contents of 'patched' to memory_path.path()
-        let mut file = OpenOptions::new() // todo refactor into a method
+        let mut file = OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
@@ -253,19 +222,6 @@ impl Snapshot {
             f.read_u32::<LittleEndian>().map_err(PersistenceError)?;
         f.read(buffer.as_mut_slice()).map_err(PersistenceError)?;
         Ok((size as usize, original_len as usize, buffer))
-    }
-
-    /// Writes buffer to file at snapshot's path.
-    #[allow(dead_code)]
-    fn write(&self, buf: Vec<u8>) -> Result<(), Error> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(self.path())
-            .map_err(PersistenceError)?;
-        file.write_all(buf.as_slice()).map_err(PersistenceError)?;
-        Ok(())
     }
 
     pub fn id(&self) -> SnapshotId {
