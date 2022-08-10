@@ -7,14 +7,13 @@
 use crate::error::Error;
 use crate::snapshot::Snapshot;
 use crate::snapshot::{MemoryPath, SnapshotId};
-use crate::storage_helpers::snapshot_id_to_name;
 use crate::Error::InvalidSnapshotIndex;
 
 #[derive(Debug)]
 pub struct SnapshotBag {
     // first snapshot is always uncompressed
     ids: Vec<SnapshotId>,
-    // we keep top uncompressed snapshot to make save efficient
+    // we keep top uncompressed snapshot to make save snapshot efficient
     top: SnapshotId,
     // accu is needed for a series of compressed snapshots depending on each
     // other
@@ -34,27 +33,22 @@ impl SnapshotBag {
         snapshot: &Snapshot,
         memory_path: &MemoryPath,
     ) -> Result<usize, Error> {
-        snapshot.save(memory_path)?;
-        println!("save snapshot {}", snapshot_id_to_name(snapshot.id()));
+        snapshot.capture(memory_path)?;
         self.ids.push(snapshot.id());
         if self.ids.len() == 1 {
-            snapshot.save_from_snapshot(memory_path)?;
-            let top_snapshot = Snapshot::from_id(self.top, memory_path)?;
-            top_snapshot.save_from_snapshot(memory_path)?;
-            println!("snapshot saved, ids len={}", self.ids.len());
+            // top is always the last uncompressed
+            Snapshot::from_id(self.top, memory_path)?.capture(memory_path)?;
             Ok(0)
         } else {
             let top_snapshot = Snapshot::from_id(self.top, memory_path)?;
             let accu_snapshot = Snapshot::from_id(self.accu, memory_path)?;
-            println!("saving accu");
-            accu_snapshot.save_from_snapshot(snapshot)?;
-            println!("snapshot saved to accu, accu should be uncompressed, so should be snapshot");
-            println!("compressing snapshot against top");
-            snapshot.save_compressed(&top_snapshot, memory_path)?; // now snapshot is compressed but accu keeps the uncompressed copy
-            println!("compressing done");
-            println!("recreating top from accu");
-            top_snapshot.save_from_snapshot(&accu_snapshot)?; // top is always the last uncompressed
-            println!("recreating top from accu done");
+            accu_snapshot.capture(snapshot)?;
+            // snapshot saved to accu, accu should be uncompressed, so should be
+            // snapshot compressing snapshot against top
+            snapshot.capture_compressed(&top_snapshot, memory_path)?;
+            // now snapshot is compressed but accu keeps the uncompressed copy
+            // top is always the last uncompressed
+            top_snapshot.capture(&accu_snapshot)?;
             Ok(self.ids.len() - 1)
         }
     }

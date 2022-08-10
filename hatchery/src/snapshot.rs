@@ -113,30 +113,21 @@ impl Snapshot {
         })
     }
 
-    pub fn save_from_snapshot(
-        &self,
-        snapshot: &dyn SnapshotLike,
-    ) -> Result<(), Error> {
+    pub fn capture(&self, snapshot: &dyn SnapshotLike) -> Result<(), Error> {
         println!("copy {:?} to {:?}", snapshot.path(), self.path.as_path());
         std::fs::copy(snapshot.path(), self.path().as_path())
             .map_err(PersistenceError)?;
         Ok(())
     }
+
     pub fn restore(&self, memory_path: &MemoryPath) -> Result<(), Error> {
         std::fs::copy(self.path().as_path(), memory_path.path())
             .map_err(PersistenceError)?;
         Ok(())
     }
-    /// Saves current snapshot as uncompressed file.
-    pub fn save(&self, memory_path: &MemoryPath) -> Result<(), Error> {
-        println!("saving uncompressed {}", snapshot_id_to_name(self.id));
-        std::fs::copy(memory_path.path(), self.path().as_path())
-            .map_err(PersistenceError)?;
-        Ok(())
-    }
 
     /// Saves current snapshot as compressed file.
-    pub fn save_compressed(
+    pub fn capture_compressed(
         &self,
         base_snapshot: &Snapshot,
         memory_path: &MemoryPath,
