@@ -5,7 +5,7 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use dallo::ModuleId;
-use hatchery::{module_bytecode, Error, Receipt, World};
+use hatchery::{module_bytecode, Error, Receipt, World, WorldSnapshotId};
 use std::path::PathBuf;
 
 #[test]
@@ -88,65 +88,40 @@ pub fn world_persist_restore() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
     let id = world.deploy(module_bytecode!("box"))?;
 
-    let _: Receipt<()> = world.transact(id, "set", 17)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(17));
-    let snapshot1 = world.persist()?;
+    fn create_snapshot(
+        world: &mut World,
+        id: ModuleId,
+        arg: i16,
+    ) -> Result<WorldSnapshotId, Error> {
+        let _: Receipt<()> = world.transact(id, "set", arg)?;
+        let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+        assert_eq!(*value, Some(arg));
+        world.persist()
+    }
 
-    let _: Receipt<()> = world.transact(id, "set", 18)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(18));
-    let snapshot2 = world.persist()?;
+    fn restore_snapshot(
+        world: &mut World,
+        id: ModuleId,
+        world_snapshot_id: &WorldSnapshotId,
+        arg: i16,
+    ) -> Result<(), Error> {
+        world.restore(&world_snapshot_id)?;
+        let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
+        assert_eq!(*value, Some(arg));
+        Ok(())
+    }
 
-    let _: Receipt<()> = world.transact(id, "set", 19)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(19));
-    let snapshot3 = world.persist()?;
+    let snapshot = create_snapshot(&mut world, id, 17)?;
+    restore_snapshot(&mut world, id, &snapshot, 17)?;
 
-    world.restore(&snapshot1)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(17));
+    let mut snapshot_ids = Vec::new();
+    let random_i = vec![3, 1, 0, 4, 2];
+    for i in 0..random_i.len() {
+        snapshot_ids.push(create_snapshot(&mut world, id, i as i16)?);
+    }
+    for i in random_i {
+        restore_snapshot(&mut world, id, &snapshot_ids[i], (i) as i16)?;
+    }
 
-    world.restore(&snapshot2)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(18));
-
-    world.restore(&snapshot3)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(19));
-    Ok(())
-}
-
-#[test]
-pub fn world_persist_restore_interleaved() -> Result<(), Error> {
-    let mut world = World::ephemeral()?;
-    let id = world.deploy(module_bytecode!("box"))?;
-
-    let _: Receipt<()> = world.transact(id, "set", 17)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(17));
-    let snapshot1 = world.persist()?;
-
-    let _: Receipt<()> = world.transact(id, "set", 18)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(18));
-    let snapshot2 = world.persist()?;
-
-    let _: Receipt<()> = world.transact(id, "set", 19)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(19));
-    let snapshot3 = world.persist()?;
-
-    world.restore(&snapshot2)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(18));
-
-    world.restore(&snapshot3)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(19));
-
-    world.restore(&snapshot1)?;
-    let value: Receipt<Option<i16>> = world.query(id, "get", ())?;
-    assert_eq!(*value, Some(17));
     Ok(())
 }

@@ -18,6 +18,7 @@ mod world_snapshot;
 
 pub use error::Error;
 pub use world::{Event, Receipt, World};
+pub use world_snapshot::WorldSnapshotId;
 
 #[macro_export]
 macro_rules! module_bytecode {
