@@ -99,7 +99,6 @@ impl World {
             world_snapshot_id.xor(&snapshot.id());
             let snapshot_index =
                 snapshot_bag.save_snapshot(&snapshot, &memory_path)?;
-            environment.inner_mut().set_dirty(false);
             world_snapshot.add(*module_id, snapshot_index);
             println!(
                 "persisted state of module: {:?} to file: {:?}",
@@ -124,17 +123,6 @@ impl World {
             .expect("snapshot not found");
         world_snapshot.restore_snapshots(&self)?;
         Ok(())
-    }
-
-    pub fn is_dirty(&self) -> bool {
-        let guard = self.0.lock();
-        let w = unsafe { &mut *guard.get() };
-        for environment in w.environments.values() {
-            if environment.inner().is_dirty() {
-                return true;
-            }
-        }
-        false
     }
 
     pub fn memory_path(&self, module_id: &ModuleId) -> PathBuf {

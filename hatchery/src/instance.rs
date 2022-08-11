@@ -31,7 +31,6 @@ pub struct Instance {
     heap_base: i32,
     self_id_ofs: i32,
     snapshot_bag: SnapshotBag,
-    dirty: bool,
 }
 
 impl Instance {
@@ -56,7 +55,6 @@ impl Instance {
             heap_base,
             self_id_ofs,
             snapshot_bag: SnapshotBag::new(),
-            dirty: true,
         }
     }
 
@@ -102,9 +100,7 @@ impl Instance {
         let ret_pos = {
             let arg_ofs = self.write_to_arg_buffer(arg)?;
 
-            let r = self.perform_transaction(name, arg_ofs)?;
-            self.set_dirty(true);
-            r
+            self.perform_transaction(name, arg_ofs)?
         };
 
         self.read_from_arg_buffer(ret_pos)
@@ -218,14 +214,6 @@ impl Instance {
 
     pub(crate) fn snapshot_bag_mut(&mut self) -> &mut SnapshotBag {
         &mut self.snapshot_bag
-    }
-
-    pub(crate) fn set_dirty(&mut self, dirty: bool) {
-        self.dirty = dirty;
-    }
-
-    pub fn is_dirty(&self) -> bool {
-        self.dirty
     }
 
     pub(crate) fn world(&self) -> &World {
