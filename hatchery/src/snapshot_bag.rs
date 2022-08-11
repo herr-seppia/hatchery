@@ -68,10 +68,8 @@ impl SnapshotBag {
             from_id(self.top)?
         } else {
             let accu_snapshot = from_id(SnapshotId::random())?;
-            let base_snapshot = from_id(self.ids[0])?;
-            let snapshot = from_id(self.ids[1])?;
-            snapshot.decompress(&base_snapshot, &accu_snapshot)?;
-            for i in 2..(snapshot_index + 1) {
+            accu_snapshot.capture(&from_id(self.ids[0])?)?;
+            for i in 1..(snapshot_index + 1) {
                 let snapshot = from_id(self.ids[i])?;
                 snapshot.decompress(&accu_snapshot, &accu_snapshot)?;
             }
