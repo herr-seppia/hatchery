@@ -84,7 +84,7 @@ pub fn world_persist_dirty_flag() -> Result<(), Error> {
 }
 
 #[test]
-pub fn world_persist_restore() -> Result<(), Error> {
+pub fn world_snapshot_persist_restore() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
     let id = world.deploy(module_bytecode!("box"))?;
 
@@ -110,9 +110,6 @@ pub fn world_persist_restore() -> Result<(), Error> {
         assert_eq!(*value, Some(arg));
         Ok(())
     }
-
-    let snapshot = create_snapshot(&mut world, id, 17)?;
-    restore_snapshot(&mut world, id, &snapshot, 17)?;
 
     let mut snapshot_ids = Vec::new();
     let random_i = vec![3, 1, 0, 4, 2];
