@@ -36,9 +36,10 @@ impl SnapshotBag {
             Snapshot::from_id(self.top, memory_path)?.capture(memory_path)?;
             Ok(0)
         } else {
-            let top_snapshot = Snapshot::from_id(self.top, memory_path)?;
-            let accu_snapshot =
-                Snapshot::from_id(SnapshotId::random(), memory_path)?;
+            let from_id =
+                |snapshot_id| Snapshot::from_id(snapshot_id, memory_path);
+            let top_snapshot = from_id(self.top)?;
+            let accu_snapshot = from_id(SnapshotId::random())?;
             accu_snapshot.capture(snapshot)?;
             // snapshot saved to accu, accu should be uncompressed, so should be
             // snapshot
@@ -55,24 +56,27 @@ impl SnapshotBag {
         snapshot_index: usize,
         memory_path: &MemoryPath,
     ) -> Result<(), Error> {
-        if (snapshot_index + 1) > self.ids.len() {
+        let is_valid = |index| index < self.ids.len();
+        if !is_valid(snapshot_index) {
             return Err(InvalidSnapshotIndex);
         }
-        if self.ids.len() == 1 || snapshot_index == 0 {
-            Snapshot::from_id(self.ids[0], memory_path)?.restore(memory_path)
-        } else if self.ids.len() == (snapshot_index + 1) {
-            Snapshot::from_id(self.top, memory_path)?.restore(memory_path)
+        let is_top = |index| (index + 1) == self.ids.len();
+        let from_id = |snapshot_id| Snapshot::from_id(snapshot_id, memory_path);
+        let final_snapshot = if snapshot_index == 0 {
+            from_id(self.ids[0])?
+        } else if is_top(snapshot_index) {
+            from_id(self.top)?
         } else {
-            let accu_snapshot =
-                Snapshot::from_id(SnapshotId::random(), memory_path)?;
-            let base_snapshot = Snapshot::from_id(self.ids[0], memory_path)?;
-            let snapshot = Snapshot::from_id(self.ids[1], memory_path)?;
+            let accu_snapshot = from_id(SnapshotId::random())?;
+            let base_snapshot = from_id(self.ids[0])?;
+            let snapshot = from_id(self.ids[1])?;
             snapshot.decompress(&base_snapshot, &accu_snapshot)?;
             for i in 2..(snapshot_index + 1) {
-                let snapshot = Snapshot::from_id(self.ids[i], memory_path)?;
+                let snapshot = from_id(self.ids[i])?;
                 snapshot.decompress(&accu_snapshot, &accu_snapshot)?;
             }
-            accu_snapshot.restore(memory_path)
-        }
+            accu_snapshot
+        };
+        final_snapshot.restore(memory_path)
     }
 }
