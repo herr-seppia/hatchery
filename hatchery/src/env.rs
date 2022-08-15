@@ -7,8 +7,6 @@
 use std::cell::UnsafeCell;
 use std::sync::Arc;
 
-use wasmer::WasmerEnv;
-
 use crate::instance::Instance;
 
 #[derive(Debug)]
@@ -18,7 +16,7 @@ enum EnvInner {
     Initialized(Instance),
 }
 
-#[derive(Clone, WasmerEnv, Debug)]
+#[derive(Clone, Debug)]
 pub struct Env(Arc<UnsafeCell<EnvInner>>);
 
 unsafe impl Sync for Env {}

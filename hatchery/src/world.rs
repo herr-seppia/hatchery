@@ -25,81 +25,107 @@ use rkyv::{Archive, Serialize};
 use stack::CallStack;
 use store::new_store;
 use tempfile::tempdir;
-use wasmer::{imports, Exports, Function, Val};
+use wasmer::{imports, Exports, Function, Module};
 
 use crate::env::Env;
 use crate::error::Error;
 use crate::instance::Instance;
 use crate::memory::MemHandler;
-use crate::snapshot::{MemoryPath, Snapshot, SnapshotLike};
+use crate::snapshot::{MemoryPath, Snapshot, SnapshotId, SnapshotLike};
 use crate::storage_helpers::module_id_to_name;
 use crate::Error::PersistenceError;
 
 const DEFAULT_POINT_LIMIT: u64 = 4096;
 const POINT_PASS_PERCENTAGE: u64 = 93;
 
-#[derive(Debug)]
-pub struct WorldInner {
-    environments: BTreeMap<ModuleId, Env>,
-    storage_path: PathBuf,
-    events: Vec<Event>,
-    call_stack: CallStack,
+/// A session is a sequence of interactions with a [`World`].
+pub struct Session<'a> {
     height: u64,
     limit: u64,
+
+    events: Vec<Event>,
+    call_stack: CallStack,
+
+    world: &'a mut World,
+    instances: BTreeMap<ModuleId, Instance>,
 }
 
-impl Deref for WorldInner {
-    type Target = BTreeMap<ModuleId, Env>;
+impl<'a> Session<'a> {
+    pub fn query<Arg, Ret>(
+        &mut self,
+        module_id: ModuleId,
+        name: &str,
+        arg: Arg,
+    ) -> Ret
+    where
+        Arg: for<'b> Serialize<StandardBufSerializer<'b>>,
+        Ret: Archive,
+        Ret::Archived: Deserialize<Ret, Infallible>,
+    {
+        self.call_stack = CallStack::new(module_id);
 
-    fn deref(&self) -> &Self::Target {
-        &self.environments
+        todo!()
+    }
+
+    pub fn transact<Arg, Ret>(
+        &mut self,
+        module_id: ModuleId,
+        name: &str,
+        arg: Arg,
+    ) -> Ret
+    where
+        Arg: for<'b> Serialize<StandardBufSerializer<'b>>,
+        Ret: Archive,
+        Ret::Archived: Deserialize<Ret, Infallible>,
+    {
+        todo!()
+    }
+
+    pub fn commit(self) -> Receipt {
+        todo!()
     }
 }
 
-impl DerefMut for WorldInner {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.environments
-    }
+#[derive(Debug)]
+pub struct World {
+    modules: BTreeMap<ModuleId, Module>,
+    storage_path: PathBuf,
 }
-
-#[derive(Debug, Clone)]
-pub struct World(Arc<ReentrantMutex<UnsafeCell<WorldInner>>>);
 
 impl World {
     pub fn new<P>(path: P) -> Self
     where
         P: Into<PathBuf>,
     {
-        World(Arc::new(ReentrantMutex::new(UnsafeCell::new(WorldInner {
-            environments: BTreeMap::new(),
+        World {
+            modules: BTreeMap::new(),
             storage_path: path.into(),
-            events: vec![],
-            call_stack: CallStack::default(),
-            height: 0,
-            limit: DEFAULT_POINT_LIMIT,
-        }))))
+        }
     }
 
     pub fn ephemeral() -> Result<Self, Error> {
-        Ok(World(Arc::new(ReentrantMutex::new(UnsafeCell::new(
-            WorldInner {
-                environments: BTreeMap::new(),
-                storage_path: tempdir()
-                    .map_err(PersistenceError)?
-                    .path()
-                    .into(),
-                events: vec![],
-                call_stack: CallStack::default(),
-                height: 0,
-                limit: DEFAULT_POINT_LIMIT,
-            },
-        )))))
+        Ok(World {
+            modules: BTreeMap::new(),
+            storage_path: tempdir().map_err(PersistenceError)?.path().into(),
+        })
+    }
+
+    /// Creates a `Session` with world.
+    pub fn session(&mut self, height: u64, point_limit: u64) -> Session {
+        Session {
+            events: vec![],
+            call_stack: Default::default(),
+            height,
+            limit: point_limit,
+            world: self,
+            instances: BTreeMap::new(),
+        }
     }
 
     pub fn persist(&self) -> Result<(), Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
-        for (module_id, environment) in w.environments.iter() {
+        for (module_id, environment) in w.modules.iter() {
             let memory_path = MemoryPath::new(self.memory_path(module_id));
             let snapshot = Snapshot::new(&memory_path)?;
             environment.inner_mut().set_snapshot_id(snapshot.id());
@@ -111,7 +137,7 @@ impl World {
     pub fn restore(&self) -> Result<(), Error> {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
-        for (module_id, environment) in w.environments.iter() {
+        for (module_id, environment) in w.modules.iter() {
             let memory_path = MemoryPath::new(self.memory_path(module_id));
             if let Some(snapshot_id) = environment.inner().snapshot_id() {
                 let snapshot = Snapshot::from_id(*snapshot_id, &memory_path)?;
@@ -141,9 +167,14 @@ impl World {
 
         let mut env = Env::uninitialized();
 
+        // wasmer::TypedFunction
+        // where each
+        // Function::new_typed_with_env
+        // FunctionEnv should probably be what currently is the contained in
+        // world that shouldn't be there.
         let imports = imports! {
             "env" => {
-                "alloc" => Function::new_native_with_env(&store, env.clone(), host_alloc),
+                "alloc" => Function::new_typed_with_env(&store, env.clone(), host_alloc),
                 "dealloc" => Function::new_native_with_env(&store, env.clone(), host_dealloc),
 
                 "snap" => Function::new_native_with_env(&store, env.clone(), host_snapshot),

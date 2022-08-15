@@ -27,6 +27,7 @@ use crate::snapshot::SnapshotId;
 use crate::world::World;
 
 #[derive(Debug)]
+// The instance should probably be less "fat".
 pub struct Instance {
     id: ModuleId,
     instance: wasmer::Instance,

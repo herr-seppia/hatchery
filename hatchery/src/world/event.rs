@@ -5,29 +5,21 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use dallo::ModuleId;
-use std::ops::Deref;
 
 /// The receipt of a query or transaction, containing the return and the events
 /// emitted.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Receipt<T> {
-    ret: T,
+pub struct Receipt {
     events: Vec<Event>,
     points_used: u64,
 }
 
-impl<T> Receipt<T> {
-    pub(crate) fn new(ret: T, events: Vec<Event>, points_used: u64) -> Self {
+impl Receipt {
+    pub(crate) fn new(events: Vec<Event>, points_used: u64) -> Self {
         Self {
-            ret,
             events,
             points_used,
         }
-    }
-
-    /// Get the return of the query or transaction.
-    pub fn ret(&self) -> &T {
-        &self.ret
     }
 
     /// Return the events emitted.
@@ -38,19 +30,6 @@ impl<T> Receipt<T> {
     /// Return the points used by the call.
     pub fn points_used(&self) -> u64 {
         self.points_used
-    }
-
-    /// Convert into result
-    pub fn into_inner(self) -> T {
-        self.ret
-    }
-}
-
-impl<T> Deref for Receipt<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.ret()
     }
 }
 
