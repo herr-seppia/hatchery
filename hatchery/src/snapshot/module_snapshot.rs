@@ -5,6 +5,7 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use crate::error::Error;
+use crate::instance::ArgBufferSpan;
 use crate::snapshot::diff_data::DiffData;
 use crate::storage_helpers::ByteArrayWrapper;
 use crate::Error::PersistenceError;
@@ -50,6 +51,7 @@ impl From<[u8; 32]> for ModuleSnapshotId {
 
 pub trait ModuleSnapshotLike {
     fn path(&self) -> &PathBuf;
+
     /// Read's module snapshot's content into buffer
     fn read(&self) -> Result<Vec<u8>, Error> {
         let mut f = std::fs::File::open(self.path().as_path())
@@ -58,6 +60,25 @@ pub trait ModuleSnapshotLike {
             .map_err(PersistenceError)?;
         let mut buffer = vec![0; metadata.len() as usize];
         f.read(buffer.as_mut_slice()).map_err(PersistenceError)?;
+        Ok(buffer)
+    }
+
+    fn read_excluding_span(
+        &self,
+        span: ArgBufferSpan,
+    ) -> Result<Vec<u8>, Error> {
+        let mut f = std::fs::File::open(self.path().as_path())
+            .map_err(PersistenceError)?;
+        let metadata = std::fs::metadata(self.path().as_path())
+            .map_err(PersistenceError)?;
+        let mut buffer = vec![0; metadata.len() as usize - span.len()];
+        let mut arg_buffer = vec![0; span.len()];
+        f.read(&mut buffer.as_mut_slice()[..span.begin as usize])
+            .map_err(PersistenceError)?;
+        f.read(arg_buffer.as_mut_slice())
+            .map_err(PersistenceError)?;
+        f.read(&mut buffer.as_mut_slice()[span.begin as usize..])
+            .map_err(PersistenceError)?;
         Ok(buffer)
     }
 }
@@ -97,9 +118,15 @@ pub struct ModuleSnapshot {
 }
 
 impl ModuleSnapshot {
-    pub(crate) fn new(memory_path: &MemoryPath) -> Result<Self, Error> {
+    pub(crate) fn new(
+        memory_path: &MemoryPath,
+        arg_buffer_span: ArgBufferSpan,
+    ) -> Result<Self, Error> {
         let module_snapshot_id: ModuleSnapshotId = ModuleSnapshotId::from(
-            *blake3::hash(memory_path.read()?.as_slice()).as_bytes(),
+            *blake3::hash(
+                memory_path.read_excluding_span(arg_buffer_span)?.as_slice(),
+            )
+            .as_bytes(),
         );
         ModuleSnapshot::from_id(module_snapshot_id, memory_path)
     }
