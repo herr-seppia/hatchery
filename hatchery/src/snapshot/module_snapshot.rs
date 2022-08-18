@@ -80,9 +80,16 @@ pub trait ModuleSnapshotLike {
 
     /*
     Note - we need to also read heap as otherwise state is not recovered
-    here we skip first 1M and arg buffer, we read the rest
+    here we skip first 1M and arg buffer,
+    we read from 1M to the beginning of arg buffer
+    and then the heap, skipping its 4 bytes as they keep changing
      */
-    fn read_state_and_heap_only(&self, span: ArgBufferSpan) -> Result<Vec<u8>, Error> {
+    fn read_state_and_heap_only(
+        &self,
+        span: ArgBufferSpan,
+        heap_base: i32,
+    ) -> Result<Vec<u8>, Error> {
+        const HEAP_BEGINNING_SKIP: i32 = 4; // todo - explain this, we need to skip first 4 bytes of the heap
         let mut f = std::fs::File::open(self.path().as_path())
             .map_err(PersistenceError)?;
         let metadata = std::fs::metadata(self.path().as_path())
@@ -93,7 +100,7 @@ pub trait ModuleSnapshotLike {
         let mut buffer = vec![0; metadata.len() as usize - span.len() - ONE_MB];
         f.read(&mut buffer.as_mut_slice()[..(span.begin as usize - ONE_MB)])
             .map_err(PersistenceError)?;
-        f.seek(SeekFrom::Current((span.end - span.begin) as i64))
+        f.seek(SeekFrom::Start((heap_base + HEAP_BEGINNING_SKIP) as u64))
             .map_err(PersistenceError)?;
         f.read(&mut buffer.as_mut_slice()[(span.begin as usize - ONE_MB)..])
             .map_err(PersistenceError)?;
@@ -140,10 +147,13 @@ impl ModuleSnapshot {
     pub(crate) fn new(
         memory_path: &MemoryPath,
         arg_buffer_span: ArgBufferSpan,
+        heap_base: i32,
     ) -> Result<Self, Error> {
         let module_snapshot_id: ModuleSnapshotId = ModuleSnapshotId::from(
             *blake3::hash(
-                memory_path.read_state_and_heap_only(arg_buffer_span)?.as_slice(),
+                memory_path
+                    .read_state_and_heap_only(arg_buffer_span, heap_base)?
+                    .as_slice(),
             )
             .as_bytes(),
         );
