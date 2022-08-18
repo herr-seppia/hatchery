@@ -31,7 +31,7 @@ use crate::env::Env;
 use crate::error::Error;
 use crate::instance::Instance;
 use crate::memory::MemHandler;
-use crate::snapshot::{MemoryPath, Snapshot, SnapshotId};
+use crate::snapshot::{MemoryPath, ModuleSnapshotId, Snapshot, SnapshotId};
 use crate::storage_helpers::module_id_to_name;
 use crate::Error::{PersistenceError, SnapshotError};
 
@@ -141,6 +141,22 @@ impl World {
             .expect("valid module id")
             .inner()
     }
+
+    // #[cfg(test)]
+    pub fn get_module_snapshots(
+        &self,
+        snapshot_id: &SnapshotId,
+    ) -> Result<Vec<(ModuleId, ModuleSnapshotId)>, Error> {
+        let guard = self.0.lock();
+        let w = unsafe { &mut *guard.get() };
+        let snapshot: &Snapshot =
+            w.snapshots.get(snapshot_id).ok_or_else(|| {
+                SnapshotError(String::from("snapshot id not found"))
+            })?;
+        let get_instance = |module_id: ModuleId| self.get_instance(&module_id);
+        snapshot.get_module_snapshots(get_instance)
+    }
+
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
         let id_bytes: [u8; MODULE_ID_BYTES] = blake3::hash(bytecode).into();
         let id = ModuleId::from(id_bytes);

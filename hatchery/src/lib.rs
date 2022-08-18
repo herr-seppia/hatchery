@@ -14,6 +14,8 @@ mod world;
 
 pub use error::Error;
 pub use snapshot::SnapshotId;
+//#[cfg(test)]
+pub use snapshot::ModuleSnapshotId;
 pub use world::{Event, Receipt, World};
 
 #[macro_export]

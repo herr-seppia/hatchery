@@ -83,4 +83,16 @@ impl ModuleSnapshotBag {
         };
         final_snapshot.restore(memory_path)
     }
+
+    // #[cfg(test)]
+    pub(crate) fn get_snapshot_id(
+        &self,
+        module_snapshot_index: usize,
+    ) -> Result<ModuleSnapshotId, Error> {
+        if module_snapshot_index >= self.ids.len() {
+            Err(SnapshotError(String::from("invalid snapshot index")))
+        } else {
+            Ok(self.ids[module_snapshot_index])
+        }
+    }
 }
