@@ -22,7 +22,6 @@ use rkyv::{Archive, Deserialize, Serialize};
 pub const SNAPSHOT_ID_BYTES: usize = 32;
 /// Snapshot of the world encompassing states of all world's modules.
 #[derive(
-    Debug,
     PartialEq,
     Eq,
     Archive,
@@ -49,9 +48,22 @@ impl SnapshotId {
         }
     }
 }
+
 impl From<[u8; 32]> for SnapshotId {
     fn from(array: [u8; 32]) -> Self {
         SnapshotId(array)
+    }
+}
+
+impl core::fmt::Debug for SnapshotId {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if f.alternate() {
+            write!(f, "0x")?
+        }
+        for byte in self.0 {
+            write!(f, "{:02x}", &byte)?
+        }
+        Ok(())
     }
 }
 

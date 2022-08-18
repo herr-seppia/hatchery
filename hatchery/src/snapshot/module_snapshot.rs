@@ -14,7 +14,7 @@ use qbsdiff::Bspatch;
 use rand::Rng;
 use rkyv::{Archive, Deserialize, Serialize};
 use std::fs::OpenOptions;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 const COMPRESSION_LEVEL: i32 = 11;
@@ -63,22 +63,18 @@ pub trait ModuleSnapshotLike {
         Ok(buffer)
     }
 
-    fn read_excluding_span(
-        &self,
-        span: ArgBufferSpan,
-    ) -> Result<Vec<u8>, Error> {
+    fn read_state_only(&self, span: ArgBufferSpan) -> Result<Vec<u8>, Error> {
         let mut f = std::fs::File::open(self.path().as_path())
             .map_err(PersistenceError)?;
         let metadata = std::fs::metadata(self.path().as_path())
             .map_err(PersistenceError)?;
-        let mut buffer = vec![0; metadata.len() as usize - span.len()];
-        let mut arg_buffer = vec![0; span.len()];
-        f.read(&mut buffer.as_mut_slice()[..span.begin as usize])
+        const ONE_MB: usize = 1024 * 1024; // todo - explain this, waiting for answer from Wasmer
+        f.seek(SeekFrom::Start(ONE_MB as u64))
             .map_err(PersistenceError)?;
-        f.read(arg_buffer.as_mut_slice())
+        let mut buffer = vec![0; metadata.len() as usize - span.len() - ONE_MB];
+        f.read(&mut buffer.as_mut_slice()[..(span.begin as usize - ONE_MB)])
             .map_err(PersistenceError)?;
-        f.read(&mut buffer.as_mut_slice()[span.begin as usize..])
-            .map_err(PersistenceError)?;
+        println!(); // todo remove me
         Ok(buffer)
     }
 }
@@ -124,7 +120,7 @@ impl ModuleSnapshot {
     ) -> Result<Self, Error> {
         let module_snapshot_id: ModuleSnapshotId = ModuleSnapshotId::from(
             *blake3::hash(
-                memory_path.read_excluding_span(arg_buffer_span)?.as_slice(),
+                memory_path.read_state_only(arg_buffer_span)?.as_slice(),
             )
             .as_bytes(),
         );
