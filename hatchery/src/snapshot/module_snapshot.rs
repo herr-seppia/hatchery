@@ -63,26 +63,11 @@ pub trait ModuleSnapshotLike {
         Ok(buffer)
     }
 
-    fn read_state_only(&self, span: ArgBufferSpan) -> Result<Vec<u8>, Error> {
-        let mut f = std::fs::File::open(self.path().as_path())
-            .map_err(PersistenceError)?;
-        let metadata = std::fs::metadata(self.path().as_path())
-            .map_err(PersistenceError)?;
-        const ONE_MB: usize = 1024 * 1024; // todo - explain this, waiting for answer from Wasmer
-        f.seek(SeekFrom::Start(ONE_MB as u64))
-            .map_err(PersistenceError)?;
-        let mut buffer = vec![0; metadata.len() as usize - span.len() - ONE_MB];
-        f.read(&mut buffer.as_mut_slice()[..(span.begin as usize - ONE_MB)])
-            .map_err(PersistenceError)?;
-        println!(); // todo remove me
-        Ok(buffer)
-    }
-
     /*
     Note - we need to also read heap as otherwise state is not recovered
     here we skip first 1M and arg buffer,
     we read from 1M to the beginning of arg buffer
-    and then the heap, skipping its 4 bytes as they keep changing
+    and then from the heap to the end of memory, skipping its 4 bytes as they keep changing
      */
     fn read_state_and_heap_only(
         &self,
@@ -94,7 +79,7 @@ pub trait ModuleSnapshotLike {
             .map_err(PersistenceError)?;
         let metadata = std::fs::metadata(self.path().as_path())
             .map_err(PersistenceError)?;
-        const ONE_MB: usize = 1024 * 1024; // todo - explain this, waiting for answer from Wasmer
+        const ONE_MB: usize = 1024 * 1024; // todo - explain this
         f.seek(SeekFrom::Start(ONE_MB as u64))
             .map_err(PersistenceError)?;
         let mut buffer = vec![0; metadata.len() as usize - span.len() - ONE_MB];
@@ -104,7 +89,6 @@ pub trait ModuleSnapshotLike {
             .map_err(PersistenceError)?;
         f.read(&mut buffer.as_mut_slice()[(span.begin as usize - ONE_MB)..])
             .map_err(PersistenceError)?;
-        println!(); // todo remove me
         Ok(buffer)
     }
 }

@@ -83,5 +83,4 @@ impl ModuleSnapshotBag {
         };
         final_snapshot.restore(memory_path)
     }
-
 }

@@ -23,9 +23,6 @@ pub fn snapshot_hash_excludes_argbuf() -> Result<(), Error> {
     let snapshot_id3 = world.persist()?;
     assert_eq!(snapshot_id2, snapshot_id3);
 
-    println!("snapshot1 = {:?}", snapshot_id1); // todo remove me
-    println!("snapshot2 = {:?}", snapshot_id2); // todo remove me
-    println!("snapshot3 = {:?}", snapshot_id3); // todo remove me
     Ok(())
 }
 

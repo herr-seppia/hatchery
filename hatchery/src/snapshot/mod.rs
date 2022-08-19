@@ -127,5 +127,4 @@ impl Snapshot {
     pub fn id(&self) -> SnapshotId {
         self.id
     }
-
 }
