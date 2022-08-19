@@ -4,11 +4,7 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-use dallo::ModuleId;
-use hatchery::Error::SnapshotError;
-use hatchery::{
-    module_bytecode, Error, ModuleSnapshotId, Receipt, SnapshotId, World,
-};
+use hatchery::{module_bytecode, Error, Receipt, World};
 
 #[test]
 pub fn snapshot_hash_excludes_argbuf() -> Result<(), Error> {
@@ -34,8 +30,7 @@ pub fn snapshot_hash_excludes_argbuf() -> Result<(), Error> {
 }
 
 #[test]
-pub fn world_snapshots_refer_to_different_module_snapshot_ids(
-) -> Result<(), Error> {
+pub fn world_revert_reverts_module_snapshot_ids() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
     let id = world.deploy(module_bytecode!("box"))?;
 
@@ -43,31 +38,16 @@ pub fn world_snapshots_refer_to_different_module_snapshot_ids(
     let value = world.query::<_, Option<i16>>(id, "get", ())?;
     assert_eq!(*value, Some(0x23));
 
-    let snapshot_id1 = world.persist()?;
+    let snapshot_id = world.persist()?;
 
     world.transact::<i16, ()>(id, "set", 0x24)?;
     let value = world.query::<_, Option<i16>>(id, "get", ())?;
     assert_eq!(*value, Some(0x24));
 
-    let snapshot_id2 = world.persist()?;
+    world.restore(&snapshot_id)?;
 
-    fn get_module_snapshot_id(
-        world: &World,
-        id: ModuleId,
-        snapshot_id: SnapshotId,
-    ) -> Result<ModuleSnapshotId, Error> {
-        let module_snapshots = world.get_module_snapshots(&snapshot_id)?;
-        for (module, module_snapshot_id) in module_snapshots.iter() {
-            if *module == id {
-                return Ok(*module_snapshot_id);
-            }
-        }
-        Err(SnapshotError(String::from("module snapshot id not found")))
-    }
+    let value = world.query::<_, Option<i16>>(id, "get", ())?;
+    assert_eq!(*value, Some(0x23));
 
-    assert_ne!(
-        get_module_snapshot_id(&world, id, snapshot_id1)?,
-        get_module_snapshot_id(&world, id, snapshot_id2)?
-    );
     Ok(())
 }

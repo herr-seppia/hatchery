@@ -128,23 +128,4 @@ impl Snapshot {
         self.id
     }
 
-    // #[cfg(test)]
-    pub(crate) fn get_module_snapshots<'a, F>(
-        &self,
-        get_instance: F,
-    ) -> Result<Vec<(ModuleId, ModuleSnapshotId)>, Error>
-    where
-        F: Fn(ModuleId) -> &'a Instance,
-    {
-        let mut v = vec![];
-        for (module_id, module_snapshot_index) in
-            self.module_snapshot_indices.iter()
-        {
-            let module_snapshot_id = get_instance(*module_id)
-                .module_snapshot_bag()
-                .get_snapshot_id(*module_snapshot_index)?;
-            v.push((*module_id, module_snapshot_id));
-        }
-        Ok(v)
-    }
 }
