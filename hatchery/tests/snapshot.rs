@@ -38,16 +38,19 @@ pub fn world_revert_reverts_module_snapshot_ids() -> Result<(), Error> {
     let value = world.query::<_, Option<i16>>(id, "get", ())?;
     assert_eq!(*value, Some(0x23));
 
-    let snapshot_id = world.persist()?;
+    let snapshot_id1 = world.persist()?;
 
     world.transact::<i16, ()>(id, "set", 0x24)?;
     let value = world.query::<_, Option<i16>>(id, "get", ())?;
     assert_eq!(*value, Some(0x24));
 
-    world.restore(&snapshot_id)?;
+    world.restore(&snapshot_id1)?;
 
-    let value = world.query::<_, Option<i16>>(id, "get", ())?;
-    assert_eq!(*value, Some(0x23));
+    let snapshot_id2 = world.persist()?;
+
+    // all module snapshot ids have been reverted
+    // otherwise they would not contribute to the same (world) snapshot id
+    assert_eq!(snapshot_id1, snapshot_id2);
 
     Ok(())
 }
