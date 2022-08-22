@@ -215,6 +215,10 @@ impl World {
         let ret = instance.query(name, arg)?;
         let remaining = instance.remaining_points();
 
+        instance.with_memory(|buf| {
+            println!("{}", hex::encode(blake3::hash(buf).as_bytes()));
+        });
+
         let events = mem::take(&mut w.events);
 
         Ok(Receipt::new(ret, events, w.limit - remaining))
