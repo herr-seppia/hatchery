@@ -17,6 +17,7 @@ use dallo::ModuleId;
 
 use crate::error::Error;
 use crate::instance::Instance;
+use bytecheck::CheckBytes;
 use rkyv::{Archive, Deserialize, Serialize};
 
 pub const SNAPSHOT_ID_BYTES: usize = 32;
@@ -67,7 +68,20 @@ impl core::fmt::Debug for SnapshotId {
     }
 }
 
-#[derive(Debug)]
+impl core::fmt::Debug for ArchivedSnapshotId {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if f.alternate() {
+            write!(f, "0x")?
+        }
+        for byte in self.0 {
+            write!(f, "{:02x}", &byte)?
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Archive, Serialize, Deserialize)]
+#[archive_attr(derive(CheckBytes, Debug))]
 pub struct Snapshot {
     id: SnapshotId,
     module_snapshot_indices: BTreeMap<ModuleId, usize>,

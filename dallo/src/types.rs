@@ -4,14 +4,10 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-use rkyv::{
-    ser::serializers::{
-        AllocSerializer, BufferScratch, BufferSerializer, CompositeSerializer,
-    },
-    ser::Serializer,
-    validation::validators::DefaultValidator,
-    Archive, Deserialize, Infallible, Serialize,
-};
+use core::cmp::Ordering;
+use rkyv::{ser::serializers::{
+    AllocSerializer, BufferScratch, BufferSerializer, CompositeSerializer,
+}, ser::Serializer, validation::validators::DefaultValidator, Archive, Deserialize, Infallible, Serialize};
 
 use bytecheck::CheckBytes;
 
@@ -89,6 +85,41 @@ impl core::fmt::Debug for ModuleId {
         Ok(())
     }
 }
+
+impl Ord for ArchivedModuleId {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for ArchivedModuleId {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+    fn lt(&self, other: &Self) -> bool {
+        self.0 < other.0
+    }
+}
+
+impl PartialEq for ArchivedModuleId {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl core::fmt::Debug for ArchivedModuleId {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if f.alternate() {
+            write!(f, "0x")?
+        }
+        for byte in self.0 {
+            write!(f, "{:02x}", &byte)?
+        }
+        Ok(())
+    }
+}
+
+impl Eq for ArchivedModuleId {}
 
 #[derive(Archive, Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[archive_attr(derive(CheckBytes))]
