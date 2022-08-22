@@ -5,9 +5,14 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use core::cmp::Ordering;
-use rkyv::{ser::serializers::{
-    AllocSerializer, BufferScratch, BufferSerializer, CompositeSerializer,
-}, ser::Serializer, validation::validators::DefaultValidator, Archive, Deserialize, Infallible, Serialize};
+use rkyv::{
+    ser::serializers::{
+        AllocSerializer, BufferScratch, BufferSerializer, CompositeSerializer,
+    },
+    ser::Serializer,
+    validation::validators::DefaultValidator,
+    Archive, Deserialize, Infallible, Serialize,
+};
 
 use bytecheck::CheckBytes;
 
@@ -107,6 +112,8 @@ impl PartialEq for ArchivedModuleId {
     }
 }
 
+impl Eq for ArchivedModuleId {}
+
 impl core::fmt::Debug for ArchivedModuleId {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         if f.alternate() {
@@ -118,8 +125,6 @@ impl core::fmt::Debug for ArchivedModuleId {
         Ok(())
     }
 }
-
-impl Eq for ArchivedModuleId {}
 
 #[derive(Archive, Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[archive_attr(derive(CheckBytes))]

@@ -31,7 +31,7 @@ use crate::env::Env;
 use crate::error::Error;
 use crate::instance::Instance;
 use crate::memory::MemHandler;
-use crate::snapshot::{MemoryPath, Snapshot, SnapshotId};
+use crate::snapshot::{MemoryPath, Snapshot, SnapshotData, SnapshotId};
 use crate::storage_helpers::module_id_to_name;
 use crate::Error::{PersistenceError, SnapshotError};
 
@@ -46,7 +46,7 @@ pub struct WorldInner {
     call_stack: CallStack,
     height: u64,
     limit: u64,
-    snapshots: BTreeMap<SnapshotId, Snapshot>,
+    snapshots: SnapshotData,
 }
 
 impl Deref for WorldInner {
@@ -78,7 +78,7 @@ impl World {
             call_stack: CallStack::default(),
             height: 0,
             limit: DEFAULT_POINT_LIMIT,
-            snapshots: BTreeMap::new(),
+            snapshots: SnapshotData::new(),
         }))))
     }
 
@@ -94,7 +94,7 @@ impl World {
                 call_stack: CallStack::default(),
                 height: 0,
                 limit: DEFAULT_POINT_LIMIT,
-                snapshots: BTreeMap::new(),
+                snapshots: SnapshotData::new(),
             },
         )))))
     }
@@ -111,7 +111,7 @@ impl World {
             )?;
         }
         let snapshot_id = snapshot.id();
-        w.snapshots.insert(snapshot_id, snapshot);
+        w.snapshots.insert(snapshot);
         Ok(snapshot_id)
     }
 

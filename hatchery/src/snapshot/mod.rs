@@ -7,10 +7,13 @@
 mod diff_data;
 mod module_snapshot;
 mod module_snapshot_bag;
+mod snapshot_data;
 
 pub use module_snapshot::{MemoryPath, ModuleSnapshot, ModuleSnapshotId};
 pub use module_snapshot_bag::ModuleSnapshotBag;
+pub use snapshot_data::SnapshotData;
 
+use core::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use dallo::ModuleId;
@@ -34,6 +37,8 @@ pub const SNAPSHOT_ID_BYTES: usize = 32;
     Clone,
     Copy,
 )]
+#[archive_attr(derive(CheckBytes))]
+#[repr(C)]
 pub struct SnapshotId([u8; SNAPSHOT_ID_BYTES]);
 impl SnapshotId {
     pub const fn uninitialized() -> Self {
@@ -67,6 +72,29 @@ impl core::fmt::Debug for SnapshotId {
         Ok(())
     }
 }
+
+impl Ord for ArchivedSnapshotId {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for ArchivedSnapshotId {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+    fn lt(&self, other: &Self) -> bool {
+        self.0 < other.0
+    }
+}
+
+impl PartialEq for ArchivedSnapshotId {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Eq for ArchivedSnapshotId {}
 
 impl core::fmt::Debug for ArchivedSnapshotId {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {

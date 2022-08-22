@@ -4,15 +4,14 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-use crate::error::Error;
-use crate::Error::PersistenceError;
-use crate::{Snapshot, SnapshotId};
+use crate::snapshot::{Snapshot, SnapshotId};
 use bytecheck::CheckBytes;
 use rkyv::{
     ser::serializers::{BufferScratch, CompositeSerializer, WriteSerializer},
     ser::Serializer,
     Archive, Deserialize, Serialize,
 };
+use std::collections::btree_map::BTreeMap;
 
 use crate::error::Error;
 use crate::Error::PersistenceError;
@@ -20,19 +19,28 @@ use std::fs::OpenOptions;
 use std::io::Read;
 use std::path::Path;
 
-use std::collections::BTreeMap;
-
 const SNAPSHOT_DATA_SCRATCH_SIZE: usize = 64;
 
 #[derive(Debug, Archive, Serialize, Deserialize)]
 #[archive_attr(derive(CheckBytes, Debug))]
 pub struct SnapshotData {
-    snapshots: Vec<Snapshot>,
+    snapshots: BTreeMap<SnapshotId, Snapshot>,
 }
 
 impl SnapshotData {
-    pub fn insert(snapshot: &Snapshot) {
-        snapshots.push(snapshot);
+    pub fn new() -> Self {
+        SnapshotData {
+            snapshots: BTreeMap::new(),
+        }
+    }
+
+    pub fn insert(&mut self, snapshot: Snapshot) {
+        self.snapshots.insert(snapshot.id(), snapshot);
+    }
+
+    pub fn get(&self, snapshot_id: &SnapshotId) -> Option<&Snapshot> {
+        self.snapshots
+            .get(snapshot_id)
     }
 
     pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
