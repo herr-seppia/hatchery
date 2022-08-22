@@ -4,7 +4,9 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-use crate::snapshot::{Snapshot, SnapshotId};
+use crate::snapshot::{
+    ModuleId, ModuleSnapshotBag,
+};
 use bytecheck::CheckBytes;
 use rkyv::{
     ser::serializers::{BufferScratch, CompositeSerializer, WriteSerializer},
@@ -19,27 +21,19 @@ use std::fs::OpenOptions;
 use std::io::Read;
 use std::path::Path;
 
-const SNAPSHOT_DATA_SCRATCH_SIZE: usize = 64;
+const MODULE_SNAPSHOT_DATA_SCRATCH_SIZE: usize = 64;
 
 #[derive(Debug, Archive, Serialize, Deserialize)]
 #[archive_attr(derive(CheckBytes, Debug))]
-pub struct SnapshotData {
-    snapshots: BTreeMap<SnapshotId, Snapshot>,
+pub struct ModuleSnapshotData {
+    module_snapshot_bags: BTreeMap<ModuleId, ModuleSnapshotBag>,
 }
 
-impl SnapshotData {
+impl ModuleSnapshotData {
     pub fn new() -> Self {
-        SnapshotData {
-            snapshots: BTreeMap::new(),
+        ModuleSnapshotData {
+            module_snapshot_bags: BTreeMap::new(),
         }
-    }
-
-    pub fn insert(&mut self, snapshot: Snapshot) {
-        self.snapshots.insert(snapshot.id(), snapshot);
-    }
-
-    pub fn get(&self, snapshot_id: &SnapshotId) -> Option<&Snapshot> {
-        self.snapshots.get(snapshot_id)
     }
 
     pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
@@ -48,9 +42,9 @@ impl SnapshotData {
         let mut data = Vec::new();
         file.read_to_end(&mut data).map_err(PersistenceError)?;
         let archived = rkyv::check_archived_root::<Self>(&data[..]).unwrap();
-        let snapshot_data: Self =
+        let module_snapshot_data: Self =
             archived.deserialize(&mut rkyv::Infallible).unwrap();
-        Ok(snapshot_data)
+        Ok(module_snapshot_data)
     }
 
     pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
@@ -61,7 +55,7 @@ impl SnapshotData {
             .open(path)
             .map_err(PersistenceError)?;
 
-        let mut scratch_buf = [0u8; SNAPSHOT_DATA_SCRATCH_SIZE];
+        let mut scratch_buf = [0u8; MODULE_SNAPSHOT_DATA_SCRATCH_SIZE];
         let scratch = BufferScratch::new(&mut scratch_buf);
         let serializer = WriteSerializer::new(file);
         let mut composite =

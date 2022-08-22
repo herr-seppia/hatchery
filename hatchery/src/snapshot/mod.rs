@@ -7,6 +7,7 @@
 mod diff_data;
 mod module_snapshot;
 mod module_snapshot_bag;
+mod module_snapshot_data;
 mod snapshot_data;
 
 pub use module_snapshot::{MemoryPath, ModuleSnapshot, ModuleSnapshotId};

@@ -8,7 +8,11 @@ use crate::error::Error;
 use crate::snapshot::{MemoryPath, ModuleSnapshot, ModuleSnapshotId};
 use crate::Error::SnapshotError;
 
-#[derive(Debug)]
+use bytecheck::CheckBytes;
+use rkyv::{Archive, Deserialize, Serialize};
+
+#[derive(Debug, Archive, Serialize, Deserialize)]
+#[archive_attr(derive(CheckBytes, Debug))]
 pub struct ModuleSnapshotBag {
     // first module snapshot is always uncompressed
     ids: Vec<ModuleSnapshotId>,

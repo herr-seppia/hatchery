@@ -9,6 +9,7 @@ use crate::instance::ArgBufferSpan;
 use crate::snapshot::diff_data::DiffData;
 use crate::storage_helpers::ByteArrayWrapper;
 use crate::Error::PersistenceError;
+use bytecheck::CheckBytes;
 use qbsdiff::Bsdiff;
 use qbsdiff::Bspatch;
 use rand::Rng;
@@ -32,6 +33,8 @@ pub const MODULE_SNAPSHOT_ID_BYTES: usize = 32;
     Clone,
     Copy,
 )]
+#[archive_attr(derive(CheckBytes))]
+#[repr(C)]
 pub struct ModuleSnapshotId([u8; MODULE_SNAPSHOT_ID_BYTES]);
 impl ModuleSnapshotId {
     pub fn as_bytes(&self) -> &[u8] {
@@ -46,6 +49,18 @@ impl ModuleSnapshotId {
 impl From<[u8; 32]> for ModuleSnapshotId {
     fn from(array: [u8; 32]) -> Self {
         ModuleSnapshotId(array)
+    }
+}
+
+impl core::fmt::Debug for ArchivedModuleSnapshotId {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if f.alternate() {
+            write!(f, "0x")?
+        }
+        for byte in self.0 {
+            write!(f, "{:02x}", &byte)?
+        }
+        Ok(())
     }
 }
 
