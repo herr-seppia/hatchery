@@ -12,11 +12,13 @@ pub fn world_center_events() -> Result<(), Error> {
 
     let eventer_id = world.deploy(module_bytecode!("eventer"))?;
 
+    let mut session = world.session();
+
     const EVENT_NUM: u32 = 5;
 
     // increment through call center
     let receipt: Receipt<()> =
-        world.transact(eventer_id, "emit_events", EVENT_NUM)?;
+        session.transact(eventer_id, "emit_events", EVENT_NUM)?;
 
     let events = receipt.events();
     assert_eq!(events.len() as u32, EVENT_NUM);

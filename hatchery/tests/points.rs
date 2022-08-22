@@ -13,10 +13,12 @@ pub fn points_get_used() -> Result<(), Error> {
     let counter_id = world.deploy(module_bytecode!("counter"))?;
     let center_id = world.deploy(module_bytecode!("callcenter"))?;
 
+    let session = world.session();
+
     let receipt_counter: Receipt<i64> =
-        world.query(counter_id, "read_value", ())?;
+        session.query(counter_id, "read_value", ())?;
     let receipt_center: Receipt<i64> =
-        world.query(center_id, "query_counter", counter_id)?;
+        session.query(center_id, "query_counter", counter_id)?;
 
     assert!(receipt_counter.spent() < receipt_center.spent());
 
@@ -27,10 +29,12 @@ pub fn points_get_used() -> Result<(), Error> {
 pub fn fails_with_out_of_points() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
-    world.set_point_limit(0);
+    let mut session = world.session();
+
+    session.set_point_limit(0);
     let counter_id = world.deploy(module_bytecode!("counter"))?;
 
-    let err = world
+    let err = session
         .query::<(), i64>(counter_id, "read_value", ())
         .expect_err("should error with no gas");
 
@@ -42,14 +46,16 @@ pub fn fails_with_out_of_points() -> Result<(), Error> {
 #[test]
 pub fn limit_and_spent() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
+    let spender_id = world.deploy(module_bytecode!("spender"))?;
 
     const LIMIT: u64 = 10000;
 
-    world.set_point_limit(LIMIT);
-    let spender_id = world.deploy(module_bytecode!("spender"))?;
+    let mut session = world.session();
+
+    session.set_point_limit(LIMIT);
 
     let receipt_spender: Receipt<(u64, u64, u64, u64, u64)> =
-        world.query(spender_id, "get_limit_and_spent", ())?;
+        session.query(spender_id, "get_limit_and_spent", ())?;
 
     let (limit, spent_before, spent_after, called_limit, called_after) =
         *receipt_spender;

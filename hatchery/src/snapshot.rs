@@ -8,7 +8,7 @@ use crate::error::Error;
 use crate::storage_helpers::{
     combine_module_snapshot_names, snapshot_id_to_name,
 };
-use crate::Error::PersistenceError;
+
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -44,11 +44,12 @@ pub trait SnapshotLike {
     /// Read's snapshot's content into buffer
     fn read(&self) -> Result<Vec<u8>, Error> {
         let mut f = std::fs::File::open(self.path().as_path())
-            .map_err(PersistenceError)?;
+            .map_err(Error::PersistenceError)?;
         let metadata = std::fs::metadata(self.path().as_path())
-            .map_err(PersistenceError)?;
+            .map_err(Error::PersistenceError)?;
         let mut buffer = vec![0; metadata.len() as usize];
-        f.read(buffer.as_mut_slice()).map_err(PersistenceError)?;
+        f.read(buffer.as_mut_slice())
+            .map_err(Error::PersistenceError)?;
         Ok(buffer)
     }
 }
@@ -105,14 +106,14 @@ impl Snapshot {
     /// Saves current snapshot as uncompressed file.
     pub fn save(&self, memory_path: &MemoryPath) -> Result<(), Error> {
         std::fs::copy(memory_path.path(), self.path().as_path())
-            .map_err(PersistenceError)?;
+            .map_err(Error::PersistenceError)?;
         Ok(())
     }
 
     /// Restores current snapshot from uncompressed file.
     pub fn load(&self, memory_path: &MemoryPath) -> Result<(), Error> {
         std::fs::copy(self.path().as_path(), memory_path.path())
-            .map_err(PersistenceError)?;
+            .map_err(Error::PersistenceError)?;
         Ok(())
     }
 

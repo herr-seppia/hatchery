@@ -12,15 +12,16 @@ pub fn world_center_counter_read() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
     let counter_id = world.deploy(module_bytecode!("counter"))?;
-
-    let value: Receipt<i64> = world.query(counter_id, "read_value", ())?;
-    assert_eq!(*value, 0xfc);
-
     let center_id = world.deploy(module_bytecode!("callcenter"))?;
+
+    let mut session = world.session();
+
+    let value: Receipt<i64> = session.query(counter_id, "read_value", ())?;
+    assert_eq!(*value, 0xfc);
 
     // read value through callcenter
     let value: Receipt<i64> =
-        world.query(center_id, "query_counter", counter_id)?;
+        session.query(center_id, "query_counter", counter_id)?;
     assert_eq!(*value, 0xfc);
 
     Ok(())
@@ -31,29 +32,30 @@ pub fn world_center_counter_direct() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
     let counter_id = world.deploy(module_bytecode!("counter"))?;
+    let center_id = world.deploy(module_bytecode!("callcenter"))?;
+
+    let mut session = world.session();
 
     // read value directly
-    let value: Receipt<i64> = world.query(counter_id, "read_value", ())?;
+    let value: Receipt<i64> = session.query(counter_id, "read_value", ())?;
     assert_eq!(*value, 0xfc);
-
-    let center_id = world.deploy(module_bytecode!("callcenter"))?;
 
     // read value through callcenter
     let value: Receipt<i64> =
-        world.query(center_id, "query_counter", counter_id)?;
+        session.query(center_id, "query_counter", counter_id)?;
     assert_eq!(*value, 0xfc);
 
     // increment through call center
     let _: Receipt<()> =
-        world.transact(center_id, "increment_counter", counter_id)?;
+        session.transact(center_id, "increment_counter", counter_id)?;
 
     // read value directly
-    let value: Receipt<i64> = world.query(counter_id, "read_value", ())?;
+    let value: Receipt<i64> = session.query(counter_id, "read_value", ())?;
     assert_eq!(*value, 0xfd);
 
     // read value through callcenter
     let value: Receipt<i64> =
-        world.query(center_id, "query_counter", counter_id)?;
+        session.query(center_id, "query_counter", counter_id)?;
     assert_eq!(*value, 0xfd);
 
     Ok(())
@@ -66,15 +68,17 @@ pub fn world_center_counter_delegated() -> Result<(), Error> {
     let counter_id = world.deploy(module_bytecode!("counter"))?;
     let center_id = world.deploy(module_bytecode!("callcenter"))?;
 
+    let mut session = world.session();
+
     let rq = RawQuery::new("read_value", ());
 
     let res: Receipt<RawQuery> =
-        world.query(center_id, "query_passthrough", rq.clone())?;
+        session.query(center_id, "query_passthrough", rq.clone())?;
 
     assert_eq!(rq, res.into_inner());
 
     // read value through callcenter
-    let res = world.query::<_, RawResult>(
+    let res = session.query::<_, RawResult>(
         center_id,
         "delegate_query",
         (counter_id, rq),
@@ -88,11 +92,14 @@ pub fn world_center_counter_delegated() -> Result<(), Error> {
 
     let rt = RawTransaction::new("increment", ());
 
-    let _: Receipt<()> =
-        world.transact(center_id, "delegate_transaction", (counter_id, rt))?;
+    let _: Receipt<()> = session.transact(
+        center_id,
+        "delegate_transaction",
+        (counter_id, rt),
+    )?;
 
     // read value directly
-    let value: Receipt<i64> = world.query(counter_id, "read_value", ())?;
+    let value: Receipt<i64> = session.query(counter_id, "read_value", ())?;
     assert_eq!(*value, 0xfd);
 
     Ok(())
@@ -104,9 +111,11 @@ pub fn world_center_calls_self() -> Result<(), Error> {
 
     let center_id = world.deploy(module_bytecode!("callcenter"))?;
 
+    let mut session = world.session();
+
     // am i calling myself
     let calling_self: Receipt<bool> =
-        world.query(center_id, "calling_self", center_id)?;
+        session.query(center_id, "calling_self", center_id)?;
     assert!(*calling_self);
 
     Ok(())
@@ -118,7 +127,9 @@ pub fn world_center_caller() -> Result<(), Error> {
 
     let center_id = world.deploy(module_bytecode!("callcenter"))?;
 
-    let value: Receipt<bool> = world.query(center_id, "call_self", ())?;
+    let session = world.session();
+
+    let value: Receipt<bool> = session.query(center_id, "call_self", ())?;
     assert!(*value);
 
     Ok(())

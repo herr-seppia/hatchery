@@ -12,9 +12,11 @@ pub fn height() -> Result<(), Error> {
 
     let id = world.deploy(module_bytecode!("everest"))?;
 
+    let mut session = world.session();
+
     for h in 0..1024 {
-        world.set_height(h);
-        let height: Receipt<u64> = world.transact(id, "get_height", ())?;
+        session.set_height(h);
+        let height: Receipt<u64> = session.transact(id, "get_height", ())?;
         assert_eq!(*height, h);
     }
 

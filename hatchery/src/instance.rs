@@ -23,14 +23,15 @@ use wasmer_middlewares::metering::{
 
 use crate::error::*;
 use crate::memory::MemHandler;
+use crate::session::Session;
 use crate::snapshot::SnapshotId;
-use crate::world::World;
+use crate::World;
 
 #[derive(Debug)]
 pub struct Instance {
     id: ModuleId,
     instance: wasmer::Instance,
-    world: World,
+    session: Session,
     mem_handler: MemHandler,
     arg_buf_ofs: i32,
     heap_base: i32,
@@ -43,7 +44,7 @@ impl Instance {
     pub(crate) fn new(
         id: ModuleId,
         instance: wasmer::Instance,
-        world: World,
+        session: Session,
         mem_handler: MemHandler,
         arg_buf_ofs: i32,
         heap_base: i32,
@@ -52,7 +53,7 @@ impl Instance {
         Instance {
             id,
             instance,
-            world,
+            session,
             mem_handler,
             arg_buf_ofs,
             heap_base,
@@ -230,8 +231,13 @@ impl Instance {
     pub fn snapshot_id(&self) -> Option<&SnapshotId> {
         self.snapshot_id.as_ref()
     }
+
     pub(crate) fn world(&self) -> &World {
-        &self.world
+        self.session.world()
+    }
+
+    pub(crate) fn session(&self) -> &Session {
+        &self.session
     }
 
     pub fn snap(&self) {

@@ -12,19 +12,21 @@ pub fn vector_push_pop() -> Result<(), Error> {
 
     let id = world.deploy(module_bytecode!("vector"))?;
 
+    let mut session = world.session();
+
     const N: usize = 128;
 
     for i in 0..N {
-        world.transact::<_, ()>(id, "push", i as i16)?;
+        session.transact::<_, ()>(id, "push", i as i16)?;
     }
 
     for i in 0..N {
-        let popped: Receipt<Option<i16>> = world.transact(id, "pop", ())?;
+        let popped: Receipt<Option<i16>> = session.transact(id, "pop", ())?;
 
         assert_eq!(*popped, Some((N - i - 1) as i16));
     }
 
-    let popped: Receipt<Option<i16>> = world.transact(id, "pop", ())?;
+    let popped: Receipt<Option<i16>> = session.transact(id, "pop", ())?;
 
     assert_eq!(*popped, None);
 

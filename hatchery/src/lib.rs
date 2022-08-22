@@ -6,14 +6,20 @@
 
 mod env;
 mod error;
+mod event;
 mod instance;
 mod memory;
+mod session;
 mod snapshot;
+mod stack;
 mod storage_helpers;
+mod store;
 mod world;
 
 pub use error::Error;
-pub use world::{Event, Receipt, World};
+pub use event::{Event, Receipt};
+pub use session::Session;
+pub use world::World;
 
 #[macro_export]
 macro_rules! module_bytecode {
