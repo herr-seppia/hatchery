@@ -7,6 +7,7 @@
 use hatchery::{module_bytecode, Error, Receipt, World};
 
 #[test]
+#[ignore]
 pub fn points_get_used() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 

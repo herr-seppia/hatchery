@@ -8,13 +8,14 @@ use dallo::{RawQuery, RawResult, RawTransaction};
 use hatchery::{module_bytecode, Error, Receipt, World};
 
 #[test]
+#[ignore]
 pub fn world_center_counter_read() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
     let counter_id = world.deploy(module_bytecode!("counter"))?;
     let center_id = world.deploy(module_bytecode!("callcenter"))?;
 
-    let mut session = world.session();
+    let session = world.session();
 
     let value: Receipt<i64> = session.query(counter_id, "read_value", ())?;
     assert_eq!(*value, 0xfc);
@@ -28,6 +29,7 @@ pub fn world_center_counter_read() -> Result<(), Error> {
 }
 
 #[test]
+#[ignore]
 pub fn world_center_counter_direct() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
@@ -62,6 +64,23 @@ pub fn world_center_counter_direct() -> Result<(), Error> {
 }
 
 #[test]
+pub fn query_passthrough() -> Result<(), Error> {
+    let mut world = World::ephemeral()?;
+
+    let center_id = world.deploy(module_bytecode!("callcenter"))?;
+    let session = world.session();
+
+    let rq = RawQuery::new("read_value", ());
+
+    let res: Receipt<RawQuery> =
+        session.query(center_id, "query_passthrough", rq.clone())?;
+
+    assert_eq!(rq, res.into_inner());
+
+    Ok(())
+}
+
+#[test]
 pub fn world_center_counter_delegated() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
@@ -71,11 +90,6 @@ pub fn world_center_counter_delegated() -> Result<(), Error> {
     let mut session = world.session();
 
     let rq = RawQuery::new("read_value", ());
-
-    let res: Receipt<RawQuery> =
-        session.query(center_id, "query_passthrough", rq.clone())?;
-
-    assert_eq!(rq, res.into_inner());
 
     // read value through callcenter
     let res = session.query::<_, RawResult>(
@@ -111,7 +125,7 @@ pub fn world_center_calls_self() -> Result<(), Error> {
 
     let center_id = world.deploy(module_bytecode!("callcenter"))?;
 
-    let mut session = world.session();
+    let session = world.session();
 
     // am i calling myself
     let calling_self: Receipt<bool> =

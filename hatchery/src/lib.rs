@@ -19,6 +19,7 @@ mod world;
 pub use error::Error;
 pub use event::{Event, Receipt};
 pub use session::Session;
+pub use snapshot::Snapshot;
 pub use world::World;
 
 #[macro_export]

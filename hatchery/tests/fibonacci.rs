@@ -12,7 +12,7 @@ pub fn fibo() -> Result<(), Error> {
 
     let id = world.deploy(module_bytecode!("fibonacci"))?;
 
-    let mut session = world.session();
+    let session = world.session();
 
     assert_eq!(*session.query::<u32, u64>(id, "nth", 0)?, 1);
     assert_eq!(*session.query::<u32, u64>(id, "nth", 1)?, 1);

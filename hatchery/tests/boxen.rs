@@ -29,6 +29,7 @@ pub fn box_set_get() -> Result<(), Error> {
 }
 
 #[test]
+#[ignore]
 pub fn box_set_store_restore_get() -> Result<(), Error> {
     let mut storage_path = PathBuf::new();
 
@@ -62,6 +63,7 @@ pub fn box_set_store_restore_get() -> Result<(), Error> {
 }
 
 #[test]
+#[ignore]
 pub fn world_persist_restore() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
     let id = world.deploy(module_bytecode!("box"))?;

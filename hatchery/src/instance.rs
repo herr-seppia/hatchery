@@ -25,7 +25,6 @@ use crate::error::*;
 use crate::memory::MemHandler;
 use crate::session::Session;
 use crate::snapshot::SnapshotId;
-use crate::World;
 
 #[derive(Debug)]
 pub struct Instance {
@@ -86,6 +85,10 @@ impl Instance {
         name: &str,
         arg_len: u32,
     ) -> Result<u32, Error> {
+        println!("gorka {:?} {:?}", name, arg_len);
+
+        println!("torka {:?}", self.id);
+
         let fun: NativeFunc<u32, u32> =
             self.instance.exports.get_native_function(name)?;
         Ok(fun.call(arg_len)?)
@@ -230,10 +233,6 @@ impl Instance {
     }
     pub fn snapshot_id(&self) -> Option<&SnapshotId> {
         self.snapshot_id.as_ref()
-    }
-
-    pub(crate) fn world(&self) -> &World {
-        self.session.world()
     }
 
     pub(crate) fn session(&self) -> &Session {

@@ -16,17 +16,13 @@ use crate::store::new_store;
 pub struct World {
     modules: Arc<RwLock<BTreeMap<ModuleId, wasmer::Module>>>,
     storage_path: PathBuf,
-    store: wasmer::Store,
 }
 
 impl World {
     pub fn restore_or_create<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        let store = new_store(&path);
-
         Ok(World {
             modules: Arc::new(RwLock::new(BTreeMap::new())),
             storage_path: path.as_ref().to_owned(),
-            store,
         })
     }
 
@@ -34,12 +30,9 @@ impl World {
         let storage_path =
             tempdir().map_err(Error::PersistenceError)?.path().into();
 
-        let store = new_store(&storage_path);
-
         Ok(World {
             modules: Arc::new(RwLock::new(BTreeMap::new())),
             storage_path,
-            store,
         })
     }
 
@@ -89,15 +82,13 @@ impl World {
         let id_bytes: [u8; MODULE_ID_BYTES] = blake3::hash(bytecode).into();
         let module_id = ModuleId::from(id_bytes);
 
-        let module = wasmer::Module::new(&self.store, bytecode)?;
+        let store = new_store(self.storage_path());
+
+        let module = wasmer::Module::new(&store, bytecode)?;
 
         self.modules.write().insert(module_id, module);
 
         Ok(module_id)
-    }
-
-    pub fn store(&self) -> &wasmer::Store {
-        &self.store
     }
 
     pub fn get_module(&self, module_id: ModuleId) -> wasmer::Module {

@@ -7,7 +7,6 @@
 use std::cell::UnsafeCell;
 use std::collections::BTreeMap;
 use std::mem;
-use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
 use dallo::{ModuleId, StandardBufSerializer, StandardDeserialize};
@@ -21,6 +20,7 @@ use crate::event::{Event, Receipt};
 use crate::instance::Instance;
 use crate::memory::MemHandler;
 use crate::stack::CallStack;
+use crate::store::new_store;
 use crate::world::World;
 
 const DEFAULT_POINT_LIMIT: u64 = 4096;
@@ -34,20 +34,6 @@ pub struct SessionInner {
     world: World,
     height: u64,
     limit: u64,
-}
-
-impl Deref for SessionInner {
-    type Target = BTreeMap<ModuleId, Env>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.environments
-    }
-}
-
-impl DerefMut for SessionInner {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.environments
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -84,7 +70,7 @@ impl Session {
 
         let mut env = Env::uninitialized();
 
-        let store = self.world().store();
+        let store = new_store(self.world().storage_path());
 
         let imports = imports! {
             "env" => {
@@ -133,6 +119,8 @@ impl Session {
 
         env.initialize(instance);
 
+        w.environments.insert(module_id, env);
+
         Ok(())
     }
 
@@ -152,9 +140,13 @@ impl Session {
 
         w.call_stack = CallStack::new(m_id, w.limit);
 
-        self.initialize_instance(m_id);
+        self.initialize_instance(m_id)?;
 
-        let instance = w.get(&m_id).expect("invalid module id").inner();
+        let instance = w
+            .environments
+            .get(&m_id)
+            .expect("invalid module id")
+            .inner();
         instance.set_remaining_points(w.limit);
 
         let ret = instance.query(name, arg)?;
@@ -181,7 +173,13 @@ impl Session {
 
         w.call_stack = CallStack::new(m_id, w.limit);
 
-        let instance = w.get(&m_id).expect("invalid module id").inner_mut();
+        self.initialize_instance(m_id)?;
+
+        let instance = w
+            .environments
+            .get(&m_id)
+            .expect("invalid module id")
+            .inner_mut();
         instance.set_remaining_points(w.limit);
 
         let ret = instance.transact(name, arg)?;
@@ -218,17 +216,22 @@ impl Session {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
 
-        let caller = w.get(&caller_id).expect("oh no").inner();
+        self.initialize_instance(caller_id)?;
+        self.initialize_instance(callee_id)?;
+
+        let caller = w.environments.get(&caller_id).expect("oh no").inner();
+        let callee = w.environments.get(&callee_id).expect("oh no").inner();
 
         let remaining = caller.remaining_points();
         let limit = remaining * POINT_PASS_PERCENTAGE / 100;
 
+        println!("a");
+
         w.call_stack.push(callee_id, limit);
 
-        let caller = w.get(&caller_id).expect("oh no").inner();
-        let callee = w.get(&callee_id).expect("no oh").inner();
-
         callee.set_remaining_points(limit);
+
+        println!("b");
 
         let mut min_len = 0;
 
@@ -239,6 +242,8 @@ impl Session {
             })
         });
 
+        println!("c");
+
         let ret_ofs = callee.perform_query(name, arg_len)?;
 
         callee.with_arg_buffer(|buf_callee| {
@@ -247,10 +252,14 @@ impl Session {
             })
         });
 
+        println!("d");
+
         let callee_used = limit - callee.remaining_points();
         caller.set_remaining_points(remaining - callee_used);
 
         w.call_stack.pop();
+
+        println!("e");
 
         Ok(ret_ofs)
     }
@@ -265,15 +274,16 @@ impl Session {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
 
-        let caller = w.get(&caller_id).expect("oh no").inner();
+        self.initialize_instance(caller_id)?;
+        self.initialize_instance(callee_id)?;
+
+        let caller = w.environments.get(&caller_id).expect("oh no").inner();
+        let callee = w.environments.get(&callee_id).expect("no oh").inner();
 
         let remaining = caller.remaining_points();
         let limit = remaining * POINT_PASS_PERCENTAGE / 100;
 
         w.call_stack.push(callee_id, limit);
-
-        let caller = w.get(&caller_id).expect("oh no").inner();
-        let callee = w.get(&callee_id).expect("no oh").inner();
 
         callee.set_remaining_points(limit);
 
