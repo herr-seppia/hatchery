@@ -6,14 +6,30 @@
 
 use core::panic::PanicInfo;
 
+use crate::bufwriter::BufWriter;
+
 #[alloc_error_handler]
 #[allow(clippy::empty_loop)]
 fn foo(_: core::alloc::Layout) -> ! {
     loop {}
 }
 
+extern "C" {
+    pub(crate) fn host_panic(len: u32);
+}
+
 #[panic_handler]
-fn panic(_: &PanicInfo) -> ! {
+fn panic(panic_info: &PanicInfo) -> ! {
+    if let Some(msg) = panic_info.message() {
+        let len = crate::state::with_arg_buf(|b| {
+            let mut w = BufWriter::new(b);
+            core::fmt::write(&mut w, *msg).unwrap();
+            w.ofs() as u32
+        });
+        unsafe { host_panic(len) }
+    } else {
+        unsafe { host_panic(0) }
+    }
     loop {}
 }
 

@@ -23,7 +23,7 @@ use crate::stack::CallStack;
 use crate::store::new_store;
 use crate::world::World;
 
-const DEFAULT_POINT_LIMIT: u64 = 4096;
+const DEFAULT_POINT_LIMIT: u64 = 4096 * 1024;
 const POINT_PASS_PERCENTAGE: u64 = 93;
 
 #[derive(Debug)]
@@ -64,7 +64,7 @@ impl Session {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
 
-        if let Some(_) = w.environments.get(&module_id) {
+        if w.environments.get(&module_id).is_some() {
             return Ok(());
         }
 
@@ -81,6 +81,7 @@ impl Session {
 
                 "q" => Function::new_native_with_env(&store, env.clone(), host_query),
                 "t" => Function::new_native_with_env(&store, env.clone(), host_transact),
+        "host_panic" => Function::new_native_with_env(&store, env.clone(), host_panic),
 
                 "height" => Function::new_native_with_env(&store, env.clone(), host_height),
                 "emit" => Function::new_native_with_env(&store, env.clone(), host_emit),
@@ -101,10 +102,7 @@ impl Session {
 
         let heap_base = global_i32(&instance.exports, "__heap_base")?;
 
-        // check buffer alignment
-        // debug_assert_eq!(arg_buf_ofs % 8, 0);
-
-        // We need to read the actual value of AL from the offset into memory
+        assert_eq!(arg_buf_ofs % 8, 0);
 
         let instance = Instance::new(
             module_id,
@@ -325,6 +323,13 @@ impl Session {
         w.events.push(Event::new(module_id, data));
     }
 
+    fn perform_panic(&self, ofs: i32, len: u32) {
+        let guard = self.0.lock();
+        let w = unsafe { &mut *guard.get() };
+
+        todo!()
+    }
+
     fn perform_limit(&self, instance: &Instance) -> Result<u32, Error> {
         let guard = self.0.lock();
         let w = unsafe { &*guard.get() };
@@ -481,4 +486,9 @@ fn host_caller(env: &Env) -> u32 {
         .session()
         .perform_caller(instance)
         .expect("TODO: error handling")
+}
+
+fn host_panic(env: &Env, len: u32) {
+    let instance = env.inner();
+    instance.panic(len)
 }

@@ -26,7 +26,9 @@ pub use world::World;
 macro_rules! module_bytecode {
     ($name:literal) => {
         include_bytes!(concat!(
-            "../../modules/target/wasm32-unknown-unknown/release/",
+            "../../modules/",
+            $name,
+            "/target/wasm32-unknown-unknown/release/",
             $name,
             ".wasm"
         ))

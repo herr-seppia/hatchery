@@ -8,7 +8,6 @@ use dallo::{RawQuery, RawResult, RawTransaction};
 use hatchery::{module_bytecode, Error, Receipt, World};
 
 #[test]
-#[ignore]
 pub fn world_center_counter_read() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 
@@ -19,6 +18,8 @@ pub fn world_center_counter_read() -> Result<(), Error> {
 
     let value: Receipt<i64> = session.query(counter_id, "read_value", ())?;
     assert_eq!(*value, 0xfc);
+
+    println!("no prob");
 
     // read value through callcenter
     let value: Receipt<i64> =
@@ -81,6 +82,7 @@ pub fn query_passthrough() -> Result<(), Error> {
 }
 
 #[test]
+#[ignore]
 pub fn world_center_counter_delegated() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
 

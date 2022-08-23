@@ -284,6 +284,15 @@ impl Instance {
             }
         }
     }
+
+    pub fn panic(&self, len: u32) -> ! {
+        self.with_arg_buffer(|b| {
+            panic!(
+                "CONTRACT PANIC: {}",
+                core::str::from_utf8(&b[..len as usize]).unwrap()
+            )
+        })
+    }
 }
 
 fn map_call_err(instance: &Instance, err: Error) -> Error {

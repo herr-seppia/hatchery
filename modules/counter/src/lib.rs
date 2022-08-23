@@ -31,7 +31,6 @@ impl Counter {
     pub fn increment(&mut self) {
         let value = self.value + 1;
 
-        // TODO, use dallo::emit() when available
         dallo::emit(value);
         self.value = value;
     }
