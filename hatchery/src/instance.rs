@@ -85,10 +85,6 @@ impl Instance {
         name: &str,
         arg_len: u32,
     ) -> Result<u32, Error> {
-        println!("gorka {:?} {:?}", name, arg_len);
-
-        println!("torka {:?}", self.id);
-
         let fun: NativeFunc<u32, u32> =
             self.instance.exports.get_native_function(name)?;
         Ok(fun.call(arg_len)?)
@@ -294,11 +290,12 @@ impl Instance {
         })
     }
 
-    pub fn debug(&self, len: u32) {
-        self.with_arg_buffer(|b| {
+    pub fn debug(&self, ofs: i32, len: u32) {
+        self.with_memory(|b| {
             println!(
                 "CONTRACT DEBUG: {}",
-                core::str::from_utf8(&b[..len as usize]).unwrap()
+                core::str::from_utf8(&b[ofs as usize..][..len as usize])
+                    .unwrap()
             )
         })
     }

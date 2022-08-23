@@ -4,35 +4,41 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
+extern "C" {
+    pub fn host_debug(ofs: i32, len: u32);
+}
+
 #[cfg(not(feature = "std"))]
-const _: () = {
-    /// Macro to format and send debug output to the host
-    #[macro_export]
-    macro_rules! debug {
-        ($($tt:tt)*) => {
-            extern "C" {
-                fn host_debug(len: u32);
-            }
+pub const DEBUG_BUFFER_SIZE: usize = 64 * 1024;
+#[cfg(not(feature = "std"))]
+pub static mut DEBUG_BUFFER: [u8; DEBUG_BUFFER_SIZE] = [0u8; DEBUG_BUFFER_SIZE];
 
-	    use core::fmt::Write;
+#[cfg(not(feature = "std"))]
+/// Macro to format and send debug output to the host
+#[macro_export]
+macro_rules! debug {
+    ($($tt:tt)*) => {
+	#[allow(unused)]
+	use core::fmt::Write as _;
 
-            let len = $crate::with_arg_buf(|b| {
-                let mut w = $crate::bufwriter::BufWriter::new(b);
-                write!(&mut w, $($tt)*).unwrap();
-                w.ofs() as u32
-            });
+	let buf = unsafe {&mut $crate::debug::DEBUG_BUFFER };
 
-            unsafe { host_debug(len) }
-        };
-    }
-};
+	let len = {
+            let mut w = $crate::bufwriter::BufWriter::new(buf);
+            write!(&mut w, $($tt)*).unwrap();
+            w.ofs() as u32
+	};
+	let ptr = buf.as_ptr() as i32;
+
+	unsafe { $crate::debug::host_debug(ptr, len) }
+    };
+}
 
 #[cfg(feature = "std")]
-const _: () = {
-    #[macro_export]
-    macro_rules! debug {
-        ($($tt:tt)*) => {
-            println!("DEBUG: {}", &format!($($tt)*))
-        };
-    }
-};
+#[macro_export]
+macro_rules! debug {
+    ($($tt:tt)*) => {
+        // println!("DEBUG: {}", &format!($($tt)*))
+        ()
+    };
+}

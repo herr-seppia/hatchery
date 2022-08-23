@@ -31,11 +31,25 @@ where
         let a: A = aa.deserialize(&mut rkyv::Infallible).unwrap();
         let ret = f(a);
 
+        crate::debug!("query called of arg_len {}", arg_len);
+
         let mut sbuf = [0u8; SCRATCH_BUF_BYTES];
+
+        crate::debug!("a");
+
         let scratch = BufferScratch::new(&mut sbuf);
+
+        crate::debug!("b");
+
         let ser = BufferSerializer::new(buf);
+
+        crate::debug!("c");
+
         let mut composite =
             CompositeSerializer::new(ser, scratch, rkyv::Infallible);
+
+        crate::debug!("d");
+
         composite.serialize_value(&ret).expect("infallible");
         composite.pos() as u32
     })

@@ -19,8 +19,6 @@ pub fn world_center_counter_read() -> Result<(), Error> {
     let value: Receipt<i64> = session.query(counter_id, "read_value", ())?;
     assert_eq!(*value, 0xfc);
 
-    println!("no prob");
-
     // read value through callcenter
     let value: Receipt<i64> =
         session.query(center_id, "query_counter", counter_id)?;

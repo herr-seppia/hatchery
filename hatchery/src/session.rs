@@ -324,13 +324,6 @@ impl Session {
         w.events.push(Event::new(module_id, data));
     }
 
-    fn perform_panic(&self, ofs: i32, len: u32) {
-        let guard = self.0.lock();
-        let w = unsafe { &mut *guard.get() };
-
-        todo!()
-    }
-
     fn perform_limit(&self, instance: &Instance) -> Result<u32, Error> {
         let guard = self.0.lock();
         let w = unsafe { &*guard.get() };
@@ -494,7 +487,7 @@ fn host_panic(env: &Env, len: u32) {
     instance.panic(len)
 }
 
-fn host_debug(env: &Env, len: u32) {
+fn host_debug(env: &Env, ofs: i32, len: u32) {
     let instance = env.inner();
-    instance.debug(len)
+    instance.debug(ofs, len)
 }

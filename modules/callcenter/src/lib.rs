@@ -26,10 +26,14 @@ static mut STATE: State<Callcenter> = State::new(Callcenter);
 
 impl Callcenter {
     pub fn query_counter(&self, counter_id: ModuleId) -> i64 {
-        dallo::query(counter_id, "read_value", ())
+        dallo::debug!("in query counter, counter_id: {:?}", counter_id);
+        //dallo::query(counter_id, "read_value", ())
+
+        0
     }
 
     pub fn increment_counter(self: &mut State<Self>, counter_id: ModuleId) {
+        dallo::debug!("in increment counter, counter_id: {:?}", counter_id);
         dallo::emit(counter_id);
         self.transact(counter_id, "increment", ())
     }
@@ -71,6 +75,7 @@ impl Callcenter {
 
 #[no_mangle]
 unsafe fn query_counter(arg_len: u32) -> u32 {
+    dallo::debug!("oh bother");
     wrap_query(arg_len, |counter_id| STATE.query_counter(counter_id))
 }
 
