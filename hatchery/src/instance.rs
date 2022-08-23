@@ -293,6 +293,15 @@ impl Instance {
             )
         })
     }
+
+    pub fn debug(&self, len: u32) {
+        self.with_arg_buffer(|b| {
+            println!(
+                "CONTRACT DEBUG: {}",
+                core::str::from_utf8(&b[..len as usize]).unwrap()
+            )
+        })
+    }
 }
 
 fn map_call_err(instance: &Instance, err: Error) -> Error {

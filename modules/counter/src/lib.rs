@@ -11,7 +11,7 @@
 #[global_allocator]
 static ALLOCATOR: dallo::HostAlloc = dallo::HostAlloc;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Counter {
     value: i64,
 }
@@ -25,6 +25,7 @@ static mut STATE: State<Counter> = State::new(Counter { value: 0xfc });
 
 impl Counter {
     pub fn read_value(&self) -> i64 {
+        dallo::debug!("oh my cat, {:?}", self);
         self.value
     }
 

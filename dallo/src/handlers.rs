@@ -30,7 +30,7 @@ fn panic(panic_info: &PanicInfo) -> ! {
     } else {
         unsafe { host_panic(0) }
     }
-    loop {}
+    unreachable!()
 }
 
 #[lang = "eh_personality"]

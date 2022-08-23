@@ -13,7 +13,9 @@ mod snap;
 pub use snap::snap;
 
 mod state;
-pub use state::{caller, emit, height, limit, query, query_raw, spent, State};
+pub use state::{
+    caller, emit, height, limit, query, query_raw, spent, with_arg_buf, State,
+};
 
 mod helpers;
 pub use helpers::*;
@@ -24,7 +26,8 @@ pub use ops::*;
 mod types;
 pub use types::*;
 
-mod bufwriter;
+pub mod bufwriter;
+mod debug;
 
 /// How many bytes to use for scratch space when serializing
 pub const SCRATCH_BUF_BYTES: usize = 64;

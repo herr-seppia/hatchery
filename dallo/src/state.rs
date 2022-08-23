@@ -37,7 +37,7 @@ mod arg_buf {
     }
 }
 
-pub(crate) use arg_buf::with_arg_buf;
+pub use arg_buf::with_arg_buf;
 
 mod ext {
     extern "C" {

@@ -82,6 +82,7 @@ impl Session {
                 "q" => Function::new_native_with_env(&store, env.clone(), host_query),
                 "t" => Function::new_native_with_env(&store, env.clone(), host_transact),
         "host_panic" => Function::new_native_with_env(&store, env.clone(), host_panic),
+        "host_debug" => Function::new_native_with_env(&store, env.clone(), host_debug),
 
                 "height" => Function::new_native_with_env(&store, env.clone(), host_height),
                 "emit" => Function::new_native_with_env(&store, env.clone(), host_emit),
@@ -491,4 +492,9 @@ fn host_caller(env: &Env) -> u32 {
 fn host_panic(env: &Env, len: u32) {
     let instance = env.inner();
     instance.panic(len)
+}
+
+fn host_debug(env: &Env, len: u32) {
+    let instance = env.inner();
+    instance.debug(len)
 }
