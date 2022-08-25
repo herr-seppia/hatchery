@@ -130,7 +130,7 @@ impl Session {
         arg: Arg,
     ) -> Result<Receipt<Ret>, Error>
     where
-        Arg: for<'a> Serialize<StandardBufSerializer<'a>>,
+        Arg: for<'a> Serialize<StandardBufSerializer<'a>> + core::fmt::Debug,
         Ret: Archive,
         Ret::Archived: StandardDeserialize<Ret>,
     {
@@ -149,8 +149,8 @@ impl Session {
         instance.set_remaining_points(w.limit);
 
         let ret = instance.query(name, arg)?;
-        let remaining = instance.remaining_points();
 
+        let remaining = instance.remaining_points();
         let events = mem::take(&mut w.events);
 
         Ok(Receipt::new(ret, events, w.limit - remaining))
@@ -215,52 +215,57 @@ impl Session {
         let guard = self.0.lock();
         let w = unsafe { &mut *guard.get() };
 
+        println!("in perform query");
+
         self.initialize_instance(caller_id)?;
         self.initialize_instance(callee_id)?;
 
         let caller = w.environments.get(&caller_id).expect("oh no").inner();
         let callee = w.environments.get(&callee_id).expect("oh no").inner();
 
+        println!("krux");
+
         let remaining = caller.remaining_points();
         let limit = remaining * POINT_PASS_PERCENTAGE / 100;
-
-        println!("a");
 
         w.call_stack.push(callee_id, limit);
 
         callee.set_remaining_points(limit);
 
-        println!("b");
-
-        let mut min_len = 0;
+        println!("flux");
 
         caller.with_arg_buffer(|buf_caller| {
             callee.with_arg_buffer(|buf_callee| {
-                min_len = std::cmp::min(buf_caller.len(), buf_callee.len());
-                buf_callee[..min_len].copy_from_slice(&buf_caller[..min_len]);
+                buf_callee[..arg_len as usize]
+                    .copy_from_slice(&buf_caller[..arg_len as usize]);
             })
         });
 
-        println!("c");
+        println!("before call");
 
-        let ret_ofs = callee.perform_query(name, arg_len)?;
+        let ret_len = callee.perform_query(name, arg_len)?;
+
+        println!("after call");
+
+        // Copy result back
 
         callee.with_arg_buffer(|buf_callee| {
             caller.with_arg_buffer(|buf_caller| {
-                buf_caller[..min_len].copy_from_slice(&buf_callee[..min_len]);
+                buf_caller[..ret_len as usize]
+                    .copy_from_slice(&buf_callee[..ret_len as usize]);
             })
         });
 
-        println!("d");
+        println!("result copied back");
 
         let callee_used = limit - callee.remaining_points();
         caller.set_remaining_points(remaining - callee_used);
 
+        println!("holror");
+
         w.call_stack.pop();
 
-        println!("e");
-
-        Ok(ret_ofs)
+        Ok(ret_len)
     }
 
     fn perform_transaction(
@@ -382,6 +387,8 @@ fn host_query(
     method_name_len: u32,
     arg_len: u32,
 ) -> u32 {
+    println!("in host query!");
+
     let module_id_adr = module_id_adr as usize;
     let method_name_adr = method_name_adr as usize;
     let method_name_len = method_name_len as usize;
@@ -400,6 +407,11 @@ fn host_query(
                 .expect("TODO, error out cleaner");
         name.push_str(utf)
     });
+
+    println!(
+        "mod_id: {:?}\nname: {:?}\narg_len: {:?}",
+        mod_id, name, arg_len
+    );
 
     instance
         .session()
@@ -488,6 +500,7 @@ fn host_panic(env: &Env, len: u32) {
 }
 
 fn host_debug(env: &Env, ofs: i32, len: u32) {
+    println!("debug {:?} {:?}", ofs, len);
     let instance = env.inner();
     instance.debug(ofs, len)
 }

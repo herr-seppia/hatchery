@@ -19,21 +19,17 @@ use crate::{
 mod arg_buf {
     use crate::ARGBUF_LEN;
 
+    #[repr(align(8))]
+    struct ArgBuf([u8; ARGBUF_LEN]);
+
     #[no_mangle]
-    static mut A: [u64; ARGBUF_LEN / 8] = [0; ARGBUF_LEN / 8];
+    static mut A: ArgBuf = ArgBuf([0u8; ARGBUF_LEN]);
 
     pub fn with_arg_buf<F, R>(f: F) -> R
     where
         F: FnOnce(&mut [u8]) -> R,
     {
-        let buf = unsafe { &mut A };
-        let first = &mut buf[0];
-        let slice = unsafe {
-            let first_byte: &mut u8 = core::mem::transmute(first);
-            core::slice::from_raw_parts_mut(first_byte, ARGBUF_LEN)
-        };
-
-        f(slice)
+        f(unsafe { &mut A.0 })
     }
 }
 
@@ -53,7 +49,6 @@ mod ext {
             name_len: u32,
             arg_len: u32,
         ) -> u32;
-
         pub(crate) fn height() -> u32;
         pub(crate) fn caller() -> u32;
         pub(crate) fn emit(arg_len: u32);
@@ -63,6 +58,7 @@ mod ext {
 }
 
 fn extern_query(module_id: ModuleId, name: &str, arg_len: u32) -> u32 {
+    crate::debug!("EXTERN QUERY {:?} {:?} {:?}", module_id, name, arg_len);
     let mod_ptr = module_id.as_ptr();
     let name_ptr = name.as_ptr();
     let name_len = name.as_bytes().len() as u32;
@@ -105,10 +101,16 @@ impl<S> DerefMut for State<S> {
 
 pub fn query<Arg, Ret>(mod_id: ModuleId, name: &str, arg: Arg) -> Ret
 where
-    Arg: for<'a> Serialize<StandardBufSerializer<'a>>,
+    Arg: for<'a> Serialize<StandardBufSerializer<'a>> + core::fmt::Debug,
     Ret: Archive,
     Ret::Archived: StandardDeserialize<Ret>,
 {
+    crate::debug!(
+        "serialize argument {:?} ({:?})",
+        arg,
+        core::any::type_name::<Arg>()
+    );
+
     let arg_len = with_arg_buf(|buf| {
         let mut sbuf = [0u8; SCRATCH_BUF_BYTES];
         let scratch = BufferScratch::new(&mut sbuf);
@@ -117,14 +119,21 @@ where
             CompositeSerializer::new(ser, scratch, rkyv::Infallible);
 
         composite.serialize_value(&arg).expect("infallible");
+
+        crate::debug!("serialziation successful");
+
         composite.pos() as u32
     });
 
     let ret_len = extern_query(mod_id, name, arg_len);
 
+    crate::debug!("query finished ret_len {:?}", ret_len);
+
     with_arg_buf(|buf| {
         let slice = &buf[..ret_len as usize];
-        let ret = check_archived_root::<Ret>(slice).unwrap();
+
+        let ret = check_archived_root::<Ret>(slice).expect("validation error");
+
         ret.deserialize(&mut Infallible).expect("Infallible")
     })
 }
@@ -158,8 +167,10 @@ pub fn height() -> u64 {
 pub fn caller() -> ModuleId {
     with_arg_buf(|buf| {
         let ret_len = unsafe { ext::caller() };
+        crate::debug!("checking moduleid");
         let ret =
             check_archived_root::<ModuleId>(&buf[..ret_len as usize]).unwrap();
+        crate::debug!("is ok");
         ret.deserialize(&mut Infallible).expect("Infallible")
     })
 }
@@ -245,8 +256,14 @@ impl<S> State<S> {
 
         with_arg_buf(|buf| {
             let slice = &buf[..ret_len as usize];
+
+            crate::debug!("checking ret {:?}", core::any::type_name::<Ret>());
+
             let ret = check_archived_root::<Ret>(slice)
                 .expect("invalid return value");
+
+            crate::debug!("checks out");
+
             ret.deserialize(&mut Infallible).expect("Infallible")
         })
     }

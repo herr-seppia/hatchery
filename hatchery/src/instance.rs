@@ -35,6 +35,7 @@ pub struct Instance {
     arg_buf_ofs: i32,
     heap_base: i32,
     self_id_ofs: i32,
+    #[allow(unused)]
     snapshot_id: Option<SnapshotId>,
 }
 
@@ -67,15 +68,22 @@ impl Instance {
         arg: Arg,
     ) -> Result<Ret, Error>
     where
-        Arg: for<'a> Serialize<StandardBufSerializer<'a>>,
+        Arg: for<'a> Serialize<StandardBufSerializer<'a>> + core::fmt::Debug,
         Ret: Archive,
         Ret::Archived: StandardDeserialize<Ret>,
     {
+        println!(
+            "instance query of arg {:?}\n{:?}",
+            core::any::type_name::<Arg>(),
+            arg
+        );
         let ret_len = {
             let arg_len = self.write_to_arg_buffer(arg)?;
             self.perform_query(name, arg_len)
                 .map_err(|e| map_call_err(self, e))?
         };
+
+        println!("terro");
 
         self.read_from_arg_buffer(ret_len)
     }
@@ -87,7 +95,8 @@ impl Instance {
     ) -> Result<u32, Error> {
         let fun: NativeFunc<u32, u32> =
             self.instance.exports.get_native_function(name)?;
-        Ok(fun.call(arg_len)?)
+        println!("perform query {:?}", name);
+        Ok(fun.call(arg_len).expect("query errorz"))
     }
 
     pub(crate) fn transact<Arg, Ret>(
@@ -192,10 +201,21 @@ impl Instance {
         T: Archive,
         T::Archived: StandardDeserialize<T>,
     {
-        // TODO use bytecheck here
         self.with_arg_buffer(|abuf| {
             let slice = &abuf[..arg_len as usize];
+
+            println!(
+                "read from arg buf checking T {:?} (len {})",
+                core::any::type_name::<T>(),
+                arg_len
+            );
+
+            println!("archived size {:?}", core::mem::size_of::<T::Archived>());
+
             let ta: &T::Archived = check_archived_root::<T>(slice)?;
+
+            println!("good");
+
             let t = ta.deserialize(&mut Infallible).expect("Infallible");
             Ok(t)
         })
@@ -224,9 +244,12 @@ impl Instance {
         self.id
     }
 
+    #[allow(unused)]
     pub(crate) fn set_snapshot_id(&mut self, snapshot_id: SnapshotId) {
         self.snapshot_id = Some(snapshot_id);
     }
+
+    #[allow(unused)]
     pub fn snapshot_id(&self) -> Option<&SnapshotId> {
         self.snapshot_id.as_ref()
     }
@@ -291,11 +314,11 @@ impl Instance {
     }
 
     pub fn debug(&self, ofs: i32, len: u32) {
-        self.with_memory(|b| {
+        self.with_memory(|m| {
             println!(
                 "CONTRACT DEBUG: {}",
-                core::str::from_utf8(&b[ofs as usize..][..len as usize])
-                    .unwrap()
+                core::str::from_utf8(&m[ofs as usize..][..len as usize])
+                    .unwrap_or("INVALID UTF")
             )
         })
     }

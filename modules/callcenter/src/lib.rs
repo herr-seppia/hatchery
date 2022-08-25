@@ -27,9 +27,7 @@ static mut STATE: State<Callcenter> = State::new(Callcenter);
 impl Callcenter {
     pub fn query_counter(&self, counter_id: ModuleId) -> i64 {
         dallo::debug!("in query counter, counter_id: {:?}", counter_id);
-        //dallo::query(counter_id, "read_value", ())
-
-        0
+        dallo::query(counter_id, "read_value", ())
     }
 
     pub fn increment_counter(self: &mut State<Self>, counter_id: ModuleId) {
@@ -75,7 +73,7 @@ impl Callcenter {
 
 #[no_mangle]
 unsafe fn query_counter(arg_len: u32) -> u32 {
-    dallo::debug!("oh bother");
+    dallo::debug!("query counter in callcenter");
     wrap_query(arg_len, |counter_id| STATE.query_counter(counter_id))
 }
 

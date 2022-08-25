@@ -14,14 +14,20 @@ pub fn world_center_counter_read() -> Result<(), Error> {
     let counter_id = world.deploy(module_bytecode!("counter"))?;
     let center_id = world.deploy(module_bytecode!("callcenter"))?;
 
+    println!("counter_id {:?}", counter_id);
+    println!("center_id {:?}", center_id);
+
     let session = world.session();
 
-    let value: Receipt<i64> = session.query(counter_id, "read_value", ())?;
-    assert_eq!(*value, 0xfc);
+    // read counter value through callcenter
 
-    // read value through callcenter
+    println!("check i64 ok?");
+
     let value: Receipt<i64> =
         session.query(center_id, "query_counter", counter_id)?;
+
+    println!("f°°;");
+
     assert_eq!(*value, 0xfc);
 
     Ok(())

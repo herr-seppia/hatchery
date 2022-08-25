@@ -20,37 +20,45 @@ use crate::types::{StandardBufSerializer, StandardDeserialize};
 /// Returns the length of result written to the buffer.
 pub fn wrap_query<A, R, F>(arg_len: u32, f: F) -> u32
 where
-    A: Archive,
+    A: Archive + core::fmt::Debug,
     A::Archived: StandardDeserialize<A>,
-    R: for<'a> Serialize<StandardBufSerializer<'a>>,
+    R: for<'a> Serialize<StandardBufSerializer<'a>> + core::fmt::Debug,
     F: Fn(A) -> R,
 {
+    crate::debug!("query called of arg_len {}", arg_len);
     with_arg_buf(|buf| {
         let slice = &buf[..arg_len as usize];
+
+        crate::debug!(
+            "wrap_query checking argument {:?}",
+            core::any::type_name::<A>()
+        );
+
         let aa: &A::Archived = check_archived_root::<A>(slice).unwrap();
+
+        crate::debug!("all good");
+
         let a: A = aa.deserialize(&mut rkyv::Infallible).unwrap();
+
+        crate::debug!("arg {:?}", arg_len);
+
         let ret = f(a);
 
-        crate::debug!("query called of arg_len {}", arg_len);
+        crate::debug!("query return {:?}", arg_len);
 
         let mut sbuf = [0u8; SCRATCH_BUF_BYTES];
 
-        crate::debug!("a");
-
         let scratch = BufferScratch::new(&mut sbuf);
 
-        crate::debug!("b");
-
         let ser = BufferSerializer::new(buf);
-
-        crate::debug!("c");
 
         let mut composite =
             CompositeSerializer::new(ser, scratch, rkyv::Infallible);
 
-        crate::debug!("d");
-
         composite.serialize_value(&ret).expect("infallible");
+
+        crate::debug!("query return serialized");
+
         composite.pos() as u32
     })
 }

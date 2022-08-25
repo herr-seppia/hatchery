@@ -27,13 +27,15 @@ pub fn points_get_used() -> Result<(), Error> {
 }
 
 #[test]
+#[ignore]
 pub fn fails_with_out_of_points() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
+
+    let counter_id = world.deploy(module_bytecode!("counter"))?;
 
     let mut session = world.session();
 
     session.set_point_limit(0);
-    let counter_id = world.deploy(module_bytecode!("counter"))?;
 
     let err = session
         .query::<(), i64>(counter_id, "read_value", ())
@@ -45,11 +47,12 @@ pub fn fails_with_out_of_points() -> Result<(), Error> {
 }
 
 #[test]
+#[ignore]
 pub fn limit_and_spent() -> Result<(), Error> {
     let mut world = World::ephemeral()?;
     let spender_id = world.deploy(module_bytecode!("spender"))?;
 
-    const LIMIT: u64 = 10000;
+    const LIMIT: u64 = 100000;
 
     let mut session = world.session();
 

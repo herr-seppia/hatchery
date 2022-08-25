@@ -165,7 +165,7 @@ impl RawTransaction {
     }
 }
 
-#[derive(Archive, Serialize, Deserialize)]
+#[derive(Archive, Serialize, Deserialize, Debug)]
 #[archive_attr(derive(CheckBytes))]
 pub struct RawResult {
     data: alloc::vec::Vec<u8>,

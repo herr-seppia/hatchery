@@ -25,13 +25,11 @@ static mut STATE: State<Counter> = State::new(Counter { value: 0xfc });
 
 impl Counter {
     pub fn read_value(&self) -> i64 {
-        dallo::debug!("oh my horse, {:?}", self);
         self.value
     }
 
     pub fn increment(&mut self) {
         let value = self.value + 1;
-
         dallo::emit(value);
         self.value = value;
     }

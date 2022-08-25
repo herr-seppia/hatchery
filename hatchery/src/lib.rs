@@ -28,7 +28,7 @@ macro_rules! module_bytecode {
         include_bytes!(concat!(
             "../../modules/",
             $name,
-            "/target/wasm32-unknown-unknown/release/",
+            "/target/wasm32-unknown-unknown/debug/",
             $name,
             ".wasm"
         ))
