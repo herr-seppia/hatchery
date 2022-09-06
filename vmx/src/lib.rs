@@ -11,5 +11,6 @@ mod module;
 mod session;
 mod types;
 mod vm;
+mod vm_linear_memory;
 
 pub use vm::VM;
