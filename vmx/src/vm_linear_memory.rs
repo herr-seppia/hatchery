@@ -111,6 +111,7 @@ impl VMLinearMemory {
 
 impl LinearMemory for VMLinearMemory {
     fn ty(&self) -> MemoryType {
+        println!("**VMLinearMemory ty called");
         MemoryType {
             minimum: Pages::from(20u32),
             maximum: Some(Pages::from(20u32)),
@@ -119,11 +120,13 @@ impl LinearMemory for VMLinearMemory {
     }
 
     fn size(&self) -> Pages {
+        println!("**VMLinearMemory size called");
         // Pages((self.mmap.len() / WASM_PAGE_SIZE) as u32)
         Pages::from(20u32)
     }
 
     fn style(&self) -> MemoryStyle {
+        println!("**VMLinearMemory style called");
         // MemoryStyle::Dynamic {
         //     offset_guard_size: 0,
         // }
@@ -134,6 +137,7 @@ impl LinearMemory for VMLinearMemory {
     }
 
     fn grow(&mut self, delta: Pages) -> Result<Pages, MemoryError> {
+        println!("**VMLinearMemory grow called");
         Err(MemoryError::CouldNotGrow {
             current: Pages::from(100u32),
             attempted_delta: delta,
@@ -155,6 +159,7 @@ impl LinearMemory for VMLinearMemory {
     }
 
     fn try_clone(&self) -> Option<Box<dyn LinearMemory + 'static>> {
+        println!("**VMLinearMemory try_clone called");
         // TODO this could actually be implemented
         None
     }
@@ -207,6 +212,7 @@ impl Tunables for VMLinearTunables {
 
     /// Construct a `TableStyle` for the provided `TableType`
     fn table_style(&self, _table: &TableType) -> TableStyle {
+        println!("**VMLinearTunables table_style called");
         TableStyle::CallerChecksSignature
     }
     fn create_host_memory(
@@ -236,6 +242,7 @@ impl Tunables for VMLinearTunables {
         ty: &TableType,
         style: &TableStyle,
     ) -> Result<VMTable, String> {
+        println!("**VMLinearTunables create_host_table called");
         VMTable::new(ty, style)
     }
 
@@ -250,6 +257,7 @@ impl Tunables for VMLinearTunables {
         style: &TableStyle,
         vm_definition_location: NonNull<VMTableDefinition>,
     ) -> Result<VMTable, String> {
+        println!("**VMLinearTunables create_vm_table called");
         VMTable::from_definition(ty, style, vm_definition_location)
     }
 }
