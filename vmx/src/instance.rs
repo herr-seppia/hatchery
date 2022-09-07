@@ -122,7 +122,9 @@ impl WrappedInstance {
             .instance
             .exports
             .get_typed_function(&self.store, method_name)?;
-        let ret_len = fun.call(&mut self.store, arg_len)?;
+        println!("instance query - before function call: {}", method_name);
+        let ret_len = fun.call(&mut self.store, arg_len).expect("call succeeded");
+        println!("instance query - after function call: {}", method_name);
 
         self.read_from_arg_buffer(ret_len)
     }
