@@ -4,14 +4,18 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
+use memmap2::{MmapMut, MmapOptions};
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
-use wasmer_vm::{LinearMemory, MemoryError, MemoryStyle, VMMemoryDefinition};
-use memmap2::{MmapMut, MmapOptions};
-use wasmer_types::{MemoryType, Pages, WASM_PAGE_SIZE};
+use wasmer::Tunables;
+use wasmer_types::{MemoryType, Pages, TableType, WASM_PAGE_SIZE};
+use wasmer_vm::{
+    LinearMemory, MemoryError, MemoryStyle, TableStyle, VMMemory,
+    VMMemoryDefinition, VMTable, VMTableDefinition,
+};
 
 const PAGE_SIZE: usize = 65536;
 const ZERO_HASH: [u8; 32] = [0u8; 32];
@@ -161,5 +165,67 @@ impl AsRef<[u8]> for VMLinearMemory {
 impl AsMut<[u8]> for VMLinearMemory {
     fn as_mut(&mut self) -> &mut [u8] {
         &mut self.mmap
+    }
+}
+
+impl From<VMLinearMemory> for wasmer_vm::VMMemory {
+    fn from(mem: VMLinearMemory) -> Self {
+        Self(Box::new(mem))
+    }
+}
+
+pub struct VMLinearTunables;
+impl Tunables for VMLinearTunables {
+    fn memory_style(&self, _memory: &MemoryType) -> MemoryStyle {
+        MemoryStyle::Static {
+            bound: Pages::from(1u32),
+            offset_guard_size: 0,
+        }
+    }
+
+    /// Construct a `TableStyle` for the provided `TableType`
+    fn table_style(&self, _table: &TableType) -> TableStyle {
+        TableStyle::CallerChecksSignature
+    }
+    fn create_host_memory(
+        &self,
+        _ty: &MemoryType,
+        _style: &MemoryStyle,
+    ) -> Result<VMMemory, MemoryError> {
+        let memory = VMLinearMemory::ephemeral().unwrap();
+        Ok(VMMemory::from_custom(memory))
+    }
+    unsafe fn create_vm_memory(
+        &self,
+        _ty: &MemoryType,
+        _style: &MemoryStyle,
+        _vm_definition_location: NonNull<VMMemoryDefinition>,
+    ) -> Result<VMMemory, MemoryError> {
+        let memory = VMLinearMemory::ephemeral().unwrap();
+        Ok(memory.into())
+    }
+
+    /// Create a table owned by the host given a [`TableType`] and a
+    /// [`TableStyle`].
+    fn create_host_table(
+        &self,
+        ty: &TableType,
+        style: &TableStyle,
+    ) -> Result<VMTable, String> {
+        VMTable::new(ty, style)
+    }
+
+    /// Create a table owned by the VM given a [`TableType`] and a
+    /// [`TableStyle`].
+    ///
+    /// # Safety
+    /// - `vm_definition_location` must point to a valid location in VM memory.
+    unsafe fn create_vm_table(
+        &self,
+        ty: &TableType,
+        style: &TableStyle,
+        vm_definition_location: NonNull<VMTableDefinition>,
+    ) -> Result<VMTable, String> {
+        VMTable::from_definition(ty, style, vm_definition_location)
     }
 }

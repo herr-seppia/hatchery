@@ -14,6 +14,7 @@ use rkyv::{
 
 use crate::module::WrappedModule;
 use crate::session::{Session, SessionMut};
+use crate::store::new_store;
 use crate::types::{Error, StandardBufSerializer};
 
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
@@ -30,7 +31,7 @@ impl VM {
     }
 
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
-        let store = wasmer::Store::default();
+        let store = new_store();
         let id = ModuleId(self.modules.len());
         let module = WrappedModule::new(&store, bytecode)?;
         self.modules.insert(id, module);

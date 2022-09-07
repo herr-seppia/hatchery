@@ -9,6 +9,7 @@ mod bytecode_macro;
 mod instance;
 mod module;
 mod session;
+mod store;
 mod types;
 mod vm;
 mod vm_linear_memory;
