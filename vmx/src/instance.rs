@@ -19,6 +19,7 @@ use wasmer::{imports, TypedFunction};
 use dallo::SCRATCH_BUF_BYTES;
 
 use crate::module::WrappedModule;
+use crate::store::new_store;
 use crate::types::{Error, StandardBufSerializer};
 
 pub struct WrappedInstance {
@@ -32,7 +33,8 @@ impl WrappedInstance {
         let imports = imports! {};
         let module_bytes = wrap.as_bytes();
 
-        let mut store = wasmer::Store::default();
+        // let mut store = wasmer::Store::default();
+        let mut store = new_store();
         let module =
             unsafe { wasmer::Module::deserialize(&store, module_bytes)? };
 
