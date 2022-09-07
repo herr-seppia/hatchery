@@ -120,9 +120,10 @@ impl LinearMemory for VMLinearMemory {
     }
 
     fn grow(&mut self, delta: Pages) -> Result<Pages, MemoryError> {
-        self.grow(delta.0 as usize)
-            .map(|_| Pages((self.mmap.len() / WASM_PAGE_SIZE) as u32))
-            .map_err(|err| MemoryError::Generic(format!("{}", err)))
+        Err(MemoryError::CouldNotGrow {
+            current: Pages::from(100u32),
+            attempted_delta: delta,
+        })
     }
 
     fn vmmemory(&self) -> NonNull<VMMemoryDefinition> {
