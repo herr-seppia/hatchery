@@ -34,19 +34,25 @@ impl<'a> WrappedInstance<'a> {
         let module_bytes = wrap.as_bytes();
 
         // let mut store = wasmer::Store::default();
+        println!("acquiring new store2");
         let mut store = new_store();
-        let module =
-            unsafe { wasmer::Module::deserialize(&store, module_bytes)? };
+        // let module =
+        //     unsafe { wasmer::Module::deserialize(&store, module_bytes)? };
+        // let module = wasmer::Module::new(&store, wrap.as_bytecode())?;
 
-        let instance = wasmer::Instance::new(&mut store, &module, &imports)?;
-        match instance.exports.get_global("A")?.get(&mut store) {
+        println!("WrappedInstance new 3");
+        let instance = wasmer::Instance::new(&mut store, wrap.as_module(), &imports)?;
+        println!("WrappedInstance new 4");
+        let x = match instance.exports.get_global("A")?.get(&mut store) {
             wasmer::Value::I32(ofs) => Ok(WrappedInstance {
                 store,
                 instance,
                 arg_buf_ofs: ofs as usize,
             }),
             _ => todo!(),
-        }
+        };
+        println!("WrappedInstance new 5");
+        x
     }
 
     fn read_from_arg_buffer<T>(&self, arg_len: u32) -> Result<T, Error>

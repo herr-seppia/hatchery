@@ -29,12 +29,17 @@ impl<'a> Session<'a> {
     }
 
     fn initialize_module(&mut self, id: ModuleId) -> Result<(), Error> {
+        println!("ini module0");
         if self.instances.get(&id).is_some() {
             return Ok(());
         }
+        println!("ini module1");
         let module = self.vm.module(id);
+        println!("ini module2");
         let wrapped = WrappedInstance::new(module)?;
+        println!("ini module3");
         self.instances.insert(id, wrapped);
+        println!("ini module4");
         Ok(())
     }
 
@@ -42,7 +47,9 @@ impl<'a> Session<'a> {
         &mut self,
         id: ModuleId,
     ) -> Result<&mut WrappedInstance<'a>, Error> {
+        println!("get instance1");
         self.initialize_module(id)?;
+        println!("get instance1.1");
         Ok(self.instances.get_mut(&id).expect("initialized above"))
     }
 
@@ -92,6 +99,7 @@ impl<'a> SessionMut<'a> {
         &mut self,
         id: ModuleId,
     ) -> Result<&mut WrappedInstance<'a>, Error> {
+        println!("get instance2");
         self.initialize_module(id)?;
         Ok(self.instances.get_mut(&id).expect("initialized above"))
     }

@@ -24,6 +24,7 @@ lazy_static! {
         Singlepass::default(),
         VMLinearTunables {},
     );
+    // static ref CENTRAL_STORE: Store = Store::default();
 }
 
 

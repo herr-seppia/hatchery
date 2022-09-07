@@ -4,10 +4,14 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
+use std::io::Read;
 use crate::types::Error;
+use wasmer::Module;
 
 pub struct WrappedModule {
     serialized: Vec<u8>,
+    bytecode: Vec<u8>,
+    module: Module,
 }
 
 impl WrappedModule {
@@ -15,10 +19,18 @@ impl WrappedModule {
         let module = wasmer::Module::new(store, bytecode)?;
         let serialized = module.serialize()?;
 
-        Ok(WrappedModule { serialized })
+        Ok(WrappedModule { serialized, bytecode: bytecode.to_vec(), module })
     }
 
     pub fn as_bytes(&self) -> &[u8] {
         &self.serialized
+    }
+
+    pub fn as_bytecode(&self) -> &[u8] {
+        &self.bytecode.as_slice()
+    }
+
+    pub fn as_module(&self) -> &Module {
+        &self.module
     }
 }
