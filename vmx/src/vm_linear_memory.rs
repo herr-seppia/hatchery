@@ -149,7 +149,7 @@ impl LinearMemory for VMLinearMemory {
         // NonNull::new(ptr).unwrap()
         MaybeInstanceOwned::Host(Box::new(UnsafeCell::new(VMMemoryDefinition {
             base: self.mem.as_ptr() as _,
-            current_length: WASM_PAGE_SIZE,
+            current_length: PAGE_SIZE * 20,
         })))
         .as_ptr()
     }
