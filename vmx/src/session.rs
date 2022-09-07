@@ -17,7 +17,7 @@ use crate::vm::{ModuleId, VM};
 
 pub struct Session<'a> {
     vm: &'a VM,
-    instances: BTreeMap<ModuleId, WrappedInstance>,
+    instances: BTreeMap<ModuleId, WrappedInstance<'a>>,
 }
 
 impl<'a> Session<'a> {
@@ -41,7 +41,7 @@ impl<'a> Session<'a> {
     fn get_instance(
         &mut self,
         id: ModuleId,
-    ) -> Result<&mut WrappedInstance, Error> {
+    ) -> Result<&mut WrappedInstance<'a>, Error> {
         self.initialize_module(id)?;
         Ok(self.instances.get_mut(&id).expect("initialized above"))
     }
@@ -67,7 +67,7 @@ type CommitId = usize;
 
 pub struct SessionMut<'a> {
     vm: &'a mut VM,
-    instances: BTreeMap<ModuleId, WrappedInstance>,
+    instances: BTreeMap<ModuleId, WrappedInstance<'a>>,
 }
 
 impl<'a> SessionMut<'a> {
@@ -91,7 +91,7 @@ impl<'a> SessionMut<'a> {
     fn get_instance(
         &mut self,
         id: ModuleId,
-    ) -> Result<&mut WrappedInstance, Error> {
+    ) -> Result<&mut WrappedInstance<'a>, Error> {
         self.initialize_module(id)?;
         Ok(self.instances.get_mut(&id).expect("initialized above"))
     }

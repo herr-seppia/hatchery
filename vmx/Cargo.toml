@@ -15,3 +15,4 @@ memmap2 = "0.5"
 
 dallo = { path = "../dallo" }
 parking_lot = "0.12.1"
+lazy_static = "1.4.0"

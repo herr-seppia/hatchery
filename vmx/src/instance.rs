@@ -22,13 +22,13 @@ use crate::module::WrappedModule;
 use crate::store::new_store;
 use crate::types::{Error, StandardBufSerializer};
 
-pub struct WrappedInstance {
+pub struct WrappedInstance<'a> {
     instance: wasmer::Instance,
     arg_buf_ofs: usize,
-    store: wasmer::Store,
+    store: &'a mut wasmer::Store,
 }
 
-impl WrappedInstance {
+impl<'a> WrappedInstance<'a> {
     pub fn new(wrap: &WrappedModule) -> Result<Self, Error> {
         let imports = imports! {};
         let module_bytes = wrap.as_bytes();
