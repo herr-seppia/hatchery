@@ -31,4 +31,6 @@ pub fn new_store() -> Store {
         compiler_config,
         VMLinearTunables {},
     )
+
+    // Store::default()
 }
