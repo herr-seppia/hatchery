@@ -20,14 +20,14 @@ use wasmer_vm::{
 const PAGE_SIZE: usize = 65536;
 const ZERO_HASH: [u8; 32] = [0u8; 32];
 const ZEROED_PAGE: [u8; PAGE_SIZE] = [0u8; PAGE_SIZE];
-const TOTAL_PAGES: u32 = 7;
+const TOTAL_PAGES: u32 = 18;
 
 /// A WASM linear memory.
 #[derive(Debug)]
 pub struct VMLinearMemory {
     // mmap: MmapMut,
     // ptr: MmapPtr,
-    mem: [u8; PAGE_SIZE*TOTAL_PAGES as usize],
+    mem: Vec<u8>,
 }
 
 // This allows `wasmer_vm::LinearMemory::vmmemory` to be implemented at the
@@ -82,7 +82,9 @@ impl VMLinearMemory {
     pub fn ephemeral() -> io::Result<Self> {
         // let mmap = MmapMut::map_anon(PAGE_SIZE)?;
         // let ptr = MmapPtr::from(&mmap);
-        Ok(Self { /*mmap, ptr,*/ mem: [0; PAGE_SIZE*TOTAL_PAGES as usize] })
+        let mut slf = Self { /*mmap, ptr,*/ mem: Vec::with_capacity(PAGE_SIZE*TOTAL_PAGES as usize) };
+        slf.mem.resize(PAGE_SIZE*TOTAL_PAGES as usize, 0u8);
+        Ok(slf)
     }
 
     // Copies the current contents onto the file at the given `path`, replacing
