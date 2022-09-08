@@ -20,7 +20,7 @@ use wasmer_vm::{
 const PAGE_SIZE: usize = 65536;
 const ZERO_HASH: [u8; 32] = [0u8; 32];
 const ZEROED_PAGE: [u8; PAGE_SIZE] = [0u8; PAGE_SIZE];
-const TOTAL_PAGES: u32 = 6;
+const TOTAL_PAGES: u32 = 7;
 
 /// A WASM linear memory.
 #[derive(Debug)]

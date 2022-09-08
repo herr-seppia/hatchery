@@ -14,7 +14,7 @@ use rkyv::{
     validation::validators::DefaultValidator,
     Archive, Deserialize, Infallible, Serialize,
 };
-use wasmer::{imports, TypedFunction};
+use wasmer::{imports, Memory, TypedFunction};
 
 use dallo::SCRATCH_BUF_BYTES;
 
@@ -42,6 +42,18 @@ impl<'a> WrappedInstance<'a> {
 
         println!("WrappedInstance new 3");
         let instance = wasmer::Instance::new(&mut store, wrap.as_module(), &imports)?;
+
+        let mut memories: Vec<Memory> = instance
+            .exports
+            .iter()
+            .memories()
+            .map(|pair| pair.1.clone())
+            .collect();
+        assert_eq!(memories.len(), 1);
+        let first_memory = memories.pop().unwrap();
+        println!("** mem ty={:?}", first_memory.ty(&store));
+        println!("** mem size={:?}", first_memory.view(&store).size());
+
         println!("WrappedInstance new 4");
         let x = match instance.exports.get_global("A")?.get(&mut store) {
             wasmer::Value::I32(ofs) => Ok(WrappedInstance {
