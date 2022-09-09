@@ -16,6 +16,8 @@ use wasmer_vm::{
     LinearMemory, MemoryError, MemoryStyle, TableStyle, VMMemory,
     VMMemoryDefinition, VMTable, VMTableDefinition,
 };
+use std::cell::UnsafeCell;
+use wasmer_vm::MaybeInstanceOwned;
 
 const PAGE_SIZE: usize = 65536;
 const ZERO_HASH: [u8; 32] = [0u8; 32];
@@ -25,9 +27,8 @@ const TOTAL_PAGES: u32 = 18;
 /// A WASM linear memory.
 #[derive(Debug)]
 pub struct VMLinearMemory {
-    // mmap: MmapMut,
-    // ptr: MmapPtr,
     mem: Vec<u8>,
+    memory_definition: Option<VMMemoryDefinition>,
 }
 
 // This allows `wasmer_vm::LinearMemory::vmmemory` to be implemented at the
@@ -52,6 +53,9 @@ pub struct VMLinearMemory {
 //         }
 //     }
 // }
+
+unsafe impl Send for VMLinearMemory {}
+unsafe impl Sync for VMLinearMemory {}
 
 impl VMLinearMemory {
     // Creates a new copy-on-write WASM linear memory backed by a file at the
@@ -80,11 +84,18 @@ impl VMLinearMemory {
     /// Creates a new anonymous WASM linear memory with an initial size of a
     /// WASM page.
     pub fn ephemeral() -> io::Result<Self> {
-        // let mmap = MmapMut::map_anon(PAGE_SIZE)?;
-        // let ptr = MmapPtr::from(&mmap);
-        let mut slf = Self { /*mmap, ptr,*/ mem: Vec::with_capacity(PAGE_SIZE*TOTAL_PAGES as usize) };
-        slf.mem.resize(PAGE_SIZE*TOTAL_PAGES as usize, 0u8);
-        Ok(slf)
+        let sz = 18 * WASM_PAGE_SIZE;
+        let mut memory = Vec::new();
+        memory.resize(sz, 0);
+        let mut ret = VMLinearMemory {
+            mem: memory,
+            memory_definition: None,
+        };
+        ret.memory_definition = Some(VMMemoryDefinition {
+            base: ret.mem.as_ptr() as _,
+            current_length: sz,
+        });
+        Ok(ret)
     }
 
     // Copies the current contents onto the file at the given `path`, replacing
@@ -114,53 +125,34 @@ impl VMLinearMemory {
 
 impl LinearMemory for VMLinearMemory {
     fn ty(&self) -> MemoryType {
-        println!("**VMLinearMemory ty called");
         MemoryType {
-            minimum: Pages::from(TOTAL_PAGES),
-            maximum: Some(Pages::from(TOTAL_PAGES)),
+            minimum: Pages::from(18u32),
+            maximum: Some(Pages::from(18u32)),
             shared: false,
         }
     }
-
     fn size(&self) -> Pages {
-        println!("**VMLinearMemory size called");
-        // Pages((self.mmap.len() / WASM_PAGE_SIZE) as u32)
-        Pages::from(TOTAL_PAGES)
+        Pages::from(18u32)
     }
-
     fn style(&self) -> MemoryStyle {
-        println!("**VMLinearMemory style called");
-        // MemoryStyle::Dynamic {
-        //     offset_guard_size: 0,
-        // }
         MemoryStyle::Static {
-            bound: Pages::from(TOTAL_PAGES),
+            bound: Pages::from(18u32),
             offset_guard_size: 0,
         }
     }
-
     fn grow(&mut self, delta: Pages) -> Result<Pages, MemoryError> {
-        println!("**VMLinearMemory grow called");
         Err(MemoryError::CouldNotGrow {
             current: Pages::from(100u32),
             attempted_delta: delta,
         })
     }
-
     fn vmmemory(&self) -> NonNull<VMMemoryDefinition> {
-        use std::cell::UnsafeCell;
-        use wasmer_vm::MaybeInstanceOwned;
-        println!("**VMLinearMemory vmmemory called");
-        MaybeInstanceOwned::Host(Box::new(UnsafeCell::new(VMMemoryDefinition {
-            base: self.mem.as_ptr() as _,
-            current_length: PAGE_SIZE * TOTAL_PAGES as usize,
-        })))
-        .as_ptr()
+        MaybeInstanceOwned::Host(Box::new(UnsafeCell::new(
+            self.memory_definition.unwrap().clone(),
+        )))
+            .as_ptr()
     }
-
     fn try_clone(&self) -> Option<Box<dyn LinearMemory + 'static>> {
-        println!("**VMLinearMemory try_clone called");
-        // TODO this could actually be implemented
         None
     }
 }
@@ -200,14 +192,10 @@ impl From<VMLinearMemory> for wasmer_vm::VMMemory {
 pub struct VMLinearTunables;
 impl Tunables for VMLinearTunables {
     fn memory_style(&self, _memory: &MemoryType) -> MemoryStyle {
-        println!("**VMLinearTunables memory_style called");
         MemoryStyle::Static {
-            bound: Pages::from(TOTAL_PAGES),
+            bound: Pages::from(18u32),
             offset_guard_size: 0,
         }
-        // MemoryStyle::Dynamic {
-        //     offset_guard_size: 0,
-        // }
     }
 
     /// Construct a `TableStyle` for the provided `TableType`
@@ -228,10 +216,15 @@ impl Tunables for VMLinearTunables {
         &self,
         _ty: &MemoryType,
         _style: &MemoryStyle,
-        _vm_definition_location: NonNull<VMMemoryDefinition>,
+        vm_definition_location: NonNull<VMMemoryDefinition>,
     ) -> Result<VMMemory, MemoryError> {
         println!("**VMLinearTunables create_vm_memory called");
         let memory = VMLinearMemory::ephemeral().unwrap();
+        // now, it's important to update vm_definition_location with the memory information!
+        let mut ptr = vm_definition_location;
+        let md = ptr.as_mut();
+        md.base = memory.memory_definition.unwrap().base;
+        md.current_length = memory.memory_definition.unwrap().current_length;
         Ok(memory.into())
     }
 

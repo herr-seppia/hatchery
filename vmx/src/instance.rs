@@ -75,9 +75,13 @@ impl<'a> WrappedInstance<'a> {
     {
         // TODO use bytecheck here
         self.with_arg_buffer(|abuf| {
+            println!("here 1");
             let slice = &abuf[..arg_len as usize];
+            println!("here 2");
             let ta: &T::Archived = check_archived_root::<T>(slice)?;
+            println!("here 3");
             let t = ta.deserialize(&mut Infallible).expect("Infallible");
+            println!("here 4");
             Ok(t)
         })
     }
@@ -146,7 +150,9 @@ impl<'a> WrappedInstance<'a> {
         let ret_len = fun.call(&mut self.store, arg_len).expect("call succeeded");
         println!("instance query - after function call: {}", method_name);
 
-        self.read_from_arg_buffer(ret_len)
+        let r = self.read_from_arg_buffer(ret_len);
+        println!("instance query - after read from arg buffer");
+        r
     }
 
     pub fn transact<Arg, Ret>(
