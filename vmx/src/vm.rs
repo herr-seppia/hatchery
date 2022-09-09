@@ -81,7 +81,15 @@ mod tests {
         use wasmer_compiler_cranelift::Cranelift;
         use wasmer_types::Pages;
 
-        let wasm_bytes = wat2wasm(br#"(module (memory 3) (export "memory" (memory 0)))"#)?;
+        // let wasm_bytes = wat2wasm(br#"(module (memory 3) (export "memory" (memory 0)))"#)?;
+        let wasm_bytes = wat2wasm(br#"
+(module
+  (memory (;0;) 3)
+  (global (;0;) (mut i32) i32.const 1048576)
+  (export "memory" (memory 0))
+  (data (;0;) (i32.const 1048576) "*\00\00\00")
+)
+"#)?;
         let compiler = Cranelift::default();
 
         let tunables = VMLinearTunables {};
