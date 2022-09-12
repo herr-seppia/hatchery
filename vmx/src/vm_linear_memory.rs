@@ -28,7 +28,7 @@ const TOTAL_PAGES: u32 = 18;
 #[derive(Debug)]
 pub struct VMLinearMemory {
     mem: Vec<u8>,
-    memory_definition: Option<VMMemoryDefinition>,
+    memory_definition: Option<UnsafeCell<VMMemoryDefinition>>,
 }
 
 // This allows `wasmer_vm::LinearMemory::vmmemory` to be implemented at the
@@ -91,10 +91,10 @@ impl VMLinearMemory {
             mem: memory,
             memory_definition: None,
         };
-        ret.memory_definition = Some(VMMemoryDefinition {
+        ret.memory_definition = Some(UnsafeCell::new(VMMemoryDefinition {
             base: ret.mem.as_ptr() as _,
             current_length: sz,
-        });
+        }));
         Ok(ret)
     }
 
@@ -147,10 +147,17 @@ impl LinearMemory for VMLinearMemory {
         })
     }
     fn vmmemory(&self) -> NonNull<VMMemoryDefinition> {
-        MaybeInstanceOwned::Host(Box::new(UnsafeCell::new(
-            self.memory_definition.unwrap().clone(),
-        )))
-            .as_ptr()
+        unsafe {
+            NonNull::new(
+                self.memory_definition
+                    .as_ref()
+                    .unwrap()
+                    .get()
+                    .as_mut()
+                    .unwrap() as _,
+            )
+            .unwrap()
+        }
     }
     fn try_clone(&self) -> Option<Box<dyn LinearMemory + 'static>> {
         None
@@ -223,8 +230,10 @@ impl Tunables for VMLinearTunables {
         // now, it's important to update vm_definition_location with the memory information!
         let mut ptr = vm_definition_location;
         let md = ptr.as_mut();
-        md.base = memory.memory_definition.unwrap().base;
-        md.current_length = memory.memory_definition.unwrap().current_length;
+        let unsafecell = memory.memory_definition.as_ref().unwrap();
+        let def = unsafecell.get().as_ref().unwrap();
+        md.base = def.base;
+        md.current_length = def.current_length;
         Ok(memory.into())
     }
 
