@@ -17,3 +17,6 @@ memmap2 = "0.5"
 dallo = { path = "../dallo" }
 parking_lot = "0.12.1"
 lazy_static = "1.4.0"
+libc = { version = "^0.2", default-features = false }
+region = { version = "3.0" }
+more-asserts = "0.2"

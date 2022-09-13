@@ -70,19 +70,19 @@ impl VM {
 
 #[cfg(test)]
 mod tests {
-    use crate::vm_linear_memory::VMLinearTunables;
     use super::*;
-
+    use crate::vm_linear_memory::VMLinearTunables;
 
     #[ignore]
     fn check_customtunables() -> Result<(), Box<dyn std::error::Error>> {
-
         use wasmer::{imports, wat2wasm, Instance, Memory, Module, Store};
         use wasmer_compiler_cranelift::Cranelift;
         use wasmer_types::Pages;
 
-        // let wasm_bytes = wat2wasm(br#"(module (memory 3) (export "memory" (memory 0)))"#)?;
-        let wasm_bytes = wat2wasm(br#"(module
+        // let wasm_bytes = wat2wasm(br#"(module (memory 3) (export "memory"
+        // (memory 0)))"#)?;
+        let wasm_bytes = wat2wasm(
+            br#"(module
                 (type (;0;) (func (param i32) (result i32)))
         (func (;0;) (type 0) (param i32) (result i32)
         (local i32)
@@ -106,7 +106,8 @@ mod tests {
         (export "__data_end" (global 2))
         (export "__heap_base" (global 3))
         (data (;0;) (i32.const 1048576) "*\00\00\00")
-        )"#)?;
+        )"#,
+        )?;
         let compiler = Cranelift::default();
 
         let tunables = VMLinearTunables {};
@@ -153,7 +154,8 @@ mod tests {
 
             session.transact::<(), ()>(id, "increment", ())?;
 
-            // assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfd);
+            // assert_eq!(session.query::<(), i64>(id, "read_value", ())?,
+            // 0xfd);
         }
 
         // mutable session dropped without commiting.

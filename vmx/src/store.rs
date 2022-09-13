@@ -27,7 +27,6 @@ lazy_static! {
     // static ref CENTRAL_STORE: Store = Store::default();
 }
 
-
 unsafe fn very_bad_function<T>(reference: &T) -> &mut T {
     let const_ptr = reference as *const T;
     let mut_ptr = const_ptr as *mut T;
