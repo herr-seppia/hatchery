@@ -19,25 +19,27 @@ use wasmer::{imports, Memory, TypedFunction};
 use dallo::SCRATCH_BUF_BYTES;
 
 use crate::module::WrappedModule;
+use crate::store::new_store;
 use crate::types::{Error, StandardBufSerializer};
 
-pub struct WrappedInstance<'a> {
+pub struct WrappedInstance {
     instance: wasmer::Instance,
     arg_buf_ofs: usize,
-    store: &'a mut wasmer::Store,
+    store: wasmer::Store,
 }
 
-impl<'a> WrappedInstance<'a> {
-    pub fn new(wrap: &'a mut WrappedModule) -> Result<Self, Error> {
+impl WrappedInstance {
+    pub fn new(wrap: &WrappedModule) -> Result<Self, Error> {
         let imports = imports! {};
         let module_bytes = wrap.as_bytes();
 
+        let mut store = new_store();
         let module =
-            unsafe { wasmer::Module::deserialize(wrap.as_store(), module_bytes)? };
+            unsafe { wasmer::Module::deserialize(&store, module_bytes)? };
         // let module = wasmer::Module::new(wrap.as_store(), wrap.as_bytecode())?;
 
         let instance =
-            wasmer::Instance::new(wrap.as_store_mut(), &module, &imports)?;
+            wasmer::Instance::new(&mut store, &module, &imports)?;
 
         let memories: Vec<Memory> = instance
             .exports
@@ -47,9 +49,9 @@ impl<'a> WrappedInstance<'a> {
             .collect();
         assert_eq!(memories.len(), 1);
 
-        match instance.exports.get_global("A")?.get(wrap.as_store_mut()) {
+        match instance.exports.get_global("A")?.get(&mut store) {
             wasmer::Value::I32(ofs) => Ok(WrappedInstance {
-                store: wrap.as_store_mut(),
+                store,
                 instance,
                 arg_buf_ofs: ofs as usize,
             }),

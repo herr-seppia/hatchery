@@ -10,8 +10,6 @@ use wasmer::{Module, Store};
 pub struct WrappedModule {
     serialized: Vec<u8>,
     bytecode: Vec<u8>,
-    module: Module,
-    store: Store,
 }
 
 impl WrappedModule {
@@ -22,8 +20,6 @@ impl WrappedModule {
         Ok(WrappedModule {
             serialized,
             bytecode: bytecode.to_vec(),
-            module,
-            store,
         })
     }
 
@@ -33,21 +29,5 @@ impl WrappedModule {
 
     pub fn as_bytecode(&self) -> &[u8] {
         &self.bytecode.as_slice()
-    }
-
-    pub fn as_module(&self) -> &Module {
-        &self.module
-    }
-
-    pub fn as_module_mut(&mut self) -> &mut Module {
-        &mut self.module
-    }
-
-    pub fn as_store(&self) -> &Store {
-        &self.store
-    }
-
-    pub fn as_store_mut(&mut self) -> &mut Store {
-        &mut self.store
     }
 }
