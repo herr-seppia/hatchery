@@ -8,7 +8,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use wasmer::wasmparser::Operator;
-use wasmer::{BaseTunables, CompilerConfig, Store, Target};
+use wasmer::Store;
 use wasmer_compiler_singlepass::Singlepass;
 use wasmer_middlewares::Metering;
 
@@ -19,35 +19,35 @@ fn cost_function(_: &Operator) -> u64 {
     1
 }
 
-lazy_static! {
-    static ref CENTRAL_STORE: Store = Store::new_with_tunables(
-        Singlepass::default(),
-        VMLinearTunables {},
-    );
+// lazy_static! {
+//     static ref CENTRAL_STORE: Store = Store::new_with_tunables(
+//         Singlepass::default(),
+//         VMLinearTunables {},
+//     );
     // static ref CENTRAL_STORE: Store = Store::default();
-}
+// }
 
-unsafe fn very_bad_function<T>(reference: &T) -> &mut T {
-    let const_ptr = reference as *const T;
-    let mut_ptr = const_ptr as *mut T;
-    &mut *mut_ptr
-}
+// unsafe fn very_bad_function<T>(reference: &T) -> &mut T {
+//     let const_ptr = reference as *const T;
+//     let mut_ptr = const_ptr as *mut T;
+//     &mut *mut_ptr
+// }
 
 /// Creates a new store using the singlepass compiler configured to meter using
 /// the default cost function.
 // pub fn new_store<P: AsRef<Path>>(path: P) -> Store {
-pub fn new_store() -> &'static mut Store {
-    // let mut compiler_config = Singlepass::default();
+pub fn new_store() -> Store {
+    let compiler_config = Singlepass::default();
     // let metering = Arc::new(Metering::new(0, cost_function));
 
     // compiler_config.push_middleware(metering);
 
-    // Store::new_with_tunables(
-    //     compiler_config,
-    //     VMLinearTunables {},
-    // )
+    Store::new_with_tunables(
+        compiler_config,
+        VMLinearTunables {},
+    )
 
     // Store::default()
 
-    unsafe { very_bad_function(&CENTRAL_STORE) }
+    // unsafe { very_bad_function(&CENTRAL_STORE) }
 }

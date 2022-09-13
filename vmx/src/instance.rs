@@ -19,7 +19,6 @@ use wasmer::{imports, Memory, TypedFunction};
 use dallo::SCRATCH_BUF_BYTES;
 
 use crate::module::WrappedModule;
-use crate::store::new_store;
 use crate::types::{Error, StandardBufSerializer};
 
 pub struct WrappedInstance<'a> {
@@ -29,43 +28,33 @@ pub struct WrappedInstance<'a> {
 }
 
 impl<'a> WrappedInstance<'a> {
-    pub fn new(wrap: &WrappedModule) -> Result<Self, Error> {
+    pub fn new(wrap: &'a mut WrappedModule) -> Result<Self, Error> {
         let imports = imports! {};
         let module_bytes = wrap.as_bytes();
 
-        // let mut store = wasmer::Store::default();
-        println!("acquiring new store2");
-        let mut store = new_store();
-        // let module =
-        //     unsafe { wasmer::Module::deserialize(&store, module_bytes)? };
-        // let module = wasmer::Module::new(&store, wrap.as_bytecode())?;
+        let module =
+            unsafe { wasmer::Module::deserialize(wrap.as_store(), module_bytes)? };
+        // let module = wasmer::Module::new(wrap.as_store(), wrap.as_bytecode())?;
 
-        println!("WrappedInstance new 3");
         let instance =
-            wasmer::Instance::new(&mut store, wrap.as_module(), &imports)?;
+            wasmer::Instance::new(wrap.as_store_mut(), &module, &imports)?;
 
-        let mut memories: Vec<Memory> = instance
+        let memories: Vec<Memory> = instance
             .exports
             .iter()
             .memories()
             .map(|pair| pair.1.clone())
             .collect();
         assert_eq!(memories.len(), 1);
-        let first_memory = memories.pop().unwrap();
-        println!("** mem ty={:?}", first_memory.ty(&store));
-        println!("** mem size={:?}", first_memory.view(&store).size());
 
-        println!("WrappedInstance new 4");
-        let x = match instance.exports.get_global("A")?.get(&mut store) {
+        match instance.exports.get_global("A")?.get(wrap.as_store_mut()) {
             wasmer::Value::I32(ofs) => Ok(WrappedInstance {
-                store,
+                store: wrap.as_store_mut(),
                 instance,
                 arg_buf_ofs: ofs as usize,
             }),
             _ => todo!(),
-        };
-        println!("WrappedInstance new 5");
-        x
+        }
     }
 
     fn read_from_arg_buffer<T>(&self, arg_len: u32) -> Result<T, Error>

@@ -34,7 +34,7 @@ impl VM {
         println!("acquiring new store");
         let store = new_store();
         let id = ModuleId(self.modules.len());
-        let module = WrappedModule::new(&store, bytecode)?;
+        let module = WrappedModule::new(store, bytecode)?;
         self.modules.insert(id, module);
         Ok(id)
     }
@@ -43,8 +43,12 @@ impl VM {
         self.modules.get(&id).expect("Invalid ModuleId")
     }
 
+    pub fn module_mut(&mut self, id: ModuleId) -> &mut WrappedModule {
+        self.modules.get_mut(&id).expect("Invalid ModuleId")
+    }
+
     pub fn query<Arg, Ret>(
-        &self,
+        &mut self,
         id: ModuleId,
         method_name: &str,
         arg: Arg,
@@ -57,10 +61,6 @@ impl VM {
     {
         let mut session = Session::new(self);
         session.query(id, method_name, arg)
-    }
-
-    pub fn session(&self) -> Session {
-        Session::new(self)
     }
 
     pub fn session_mut(&mut self) -> SessionMut {
@@ -126,7 +126,10 @@ mod tests {
             .collect();
         assert_eq!(memories.len(), 1);
         let first_memory = memories.pop().unwrap();
-        // assert_eq!(first_memory.ty(&store).maximum.unwrap(), Pages(6));
+        assert_eq!(first_memory.ty(&store).maximum.unwrap(), Pages(18));
+        let view = first_memory.view(&store);
+        let x = unsafe { view.data_unchecked_mut() }[0];
+        assert_eq!(x, 0);
 
         Ok(())
     }

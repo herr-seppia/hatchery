@@ -10,14 +10,14 @@ use more_asserts::assert_le;
 use more_asserts::assert_lt;
 use std::cell::UnsafeCell;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader};
 use std::ops::{Deref, DerefMut};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::ptr;
 use std::ptr::NonNull;
 use wasmer::Tunables;
-use wasmer_types::{MemoryType, Pages, TableType, WASM_PAGE_SIZE};
+use wasmer_types::{MemoryType, Pages, TableType};
 use wasmer_vm::MaybeInstanceOwned;
 use wasmer_vm::{
     LinearMemory, MemoryError, MemoryStyle, TableStyle, VMMemory,
@@ -36,7 +36,7 @@ pub struct VMLinearMemory {
     memory_definition: Option<UnsafeCell<VMMemoryDefinition>>,
 }
 
-unsafe impl Send for VMLinearMemory {}
+unsafe impl Send for VMLinearMemory {} // todo: make sure this is acceptable
 unsafe impl Sync for VMLinearMemory {}
 
 impl VMLinearMemory {
@@ -135,30 +135,12 @@ impl VMLinearMemory {
         let ptr = unsafe { (*vm_def_ptr).base };
         let result = unsafe {
             region::protect(ptr.add(start), len, region::Protection::READ_WRITE)
-        }.expect("region protection");
-        // todo make proper
-        // conversion from region
-        // error to io error or use
-        // common error
+        }
+        .expect("region protection");
+        // todo: make proper conversion from region error
+        // to io error or use common error
         Ok(result)
     }
-
-    // Creates a new anonymous WASM linear memory with an initial size of a
-    // WASM page.
-    // pub fn ephemeral() -> io::Result<Self> {
-    //     let sz = 18 * WASM_PAGE_SIZE;
-    //     let mut memory = Vec::new();
-    //     memory.resize(sz, 0);
-    //     let mut ret = VMLinearMemory {
-    //         mem: memory,
-    //         memory_definition: None,
-    //     };
-    //     ret.memory_definition = Some(UnsafeCell::new(VMMemoryDefinition {
-    //         base: ret.mem.as_ptr() as _,
-    //         current_length: sz,
-    //     }));
-    //     Ok(ret)
-    // }
 }
 
 impl LinearMemory for VMLinearMemory {

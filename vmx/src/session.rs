@@ -16,12 +16,12 @@ use crate::types::{Error, StandardBufSerializer};
 use crate::vm::{ModuleId, VM};
 
 pub struct Session<'a> {
-    vm: &'a VM,
+    vm: &'a mut VM,
     instances: BTreeMap<ModuleId, WrappedInstance<'a>>,
 }
 
 impl<'a> Session<'a> {
-    pub fn new(vm: &'a VM) -> Self {
+    pub fn new(vm: &'a mut VM) -> Self {
         Session {
             vm,
             instances: BTreeMap::new(),
@@ -29,17 +29,12 @@ impl<'a> Session<'a> {
     }
 
     fn initialize_module(&mut self, id: ModuleId) -> Result<(), Error> {
-        println!("ini module0");
         if self.instances.get(&id).is_some() {
             return Ok(());
         }
-        println!("ini module1");
-        let module = self.vm.module(id);
-        println!("ini module2");
+        let module = self.vm.module_mut(id);
         let wrapped = WrappedInstance::new(module)?;
-        println!("ini module3");
         self.instances.insert(id, wrapped);
-        println!("ini module4");
         Ok(())
     }
 
@@ -47,9 +42,7 @@ impl<'a> Session<'a> {
         &mut self,
         id: ModuleId,
     ) -> Result<&mut WrappedInstance<'a>, Error> {
-        println!("get instance1");
         self.initialize_module(id)?;
-        println!("get instance1.1");
         Ok(self.instances.get_mut(&id).expect("initialized above"))
     }
 
@@ -89,7 +82,7 @@ impl<'a> SessionMut<'a> {
         if self.instances.get(&id).is_some() {
             return Ok(());
         }
-        let module = self.vm.module(id);
+        let module = self.vm.module_mut(id);
         let wrapped = WrappedInstance::new(module)?;
         self.instances.insert(id, wrapped);
         Ok(())

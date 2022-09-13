@@ -5,24 +5,25 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use crate::types::Error;
-use std::io::Read;
-use wasmer::Module;
+use wasmer::{Module, Store};
 
 pub struct WrappedModule {
     serialized: Vec<u8>,
     bytecode: Vec<u8>,
     module: Module,
+    store: Store,
 }
 
 impl WrappedModule {
-    pub fn new(store: &wasmer::Store, bytecode: &[u8]) -> Result<Self, Error> {
-        let module = wasmer::Module::new(store, bytecode)?;
+    pub fn new(store: Store, bytecode: &[u8]) -> Result<Self, Error> {
+        let module = wasmer::Module::new(&store, bytecode)?;
         let serialized = module.serialize()?;
 
         Ok(WrappedModule {
             serialized,
             bytecode: bytecode.to_vec(),
             module,
+            store,
         })
     }
 
@@ -36,5 +37,17 @@ impl WrappedModule {
 
     pub fn as_module(&self) -> &Module {
         &self.module
+    }
+
+    pub fn as_module_mut(&mut self) -> &mut Module {
+        &mut self.module
+    }
+
+    pub fn as_store(&self) -> &Store {
+        &self.store
+    }
+
+    pub fn as_store_mut(&mut self) -> &mut Store {
+        &mut self.store
     }
 }
