@@ -10,9 +10,11 @@ use rkyv::{
     Serialize,
 };
 use std::collections::BTreeMap;
+use std::path::Path;
 
+use crate::error::Error;
 use crate::instance::WrappedInstance;
-use crate::types::{Error, StandardBufSerializer};
+use crate::types::StandardBufSerializer;
 use crate::vm::{ModuleId, VM};
 
 pub struct Session<'a> {

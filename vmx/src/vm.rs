@@ -5,17 +5,20 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 
 use bytecheck::CheckBytes;
 use rkyv::{
     validation::validators::DefaultValidator, Archive, Deserialize, Infallible,
     Serialize,
 };
+use tempfile::tempdir;
 
 use crate::module::WrappedModule;
 use crate::session::{Session, SessionMut};
 use crate::store::new_store_for_compilation;
-use crate::types::{Error, StandardBufSerializer};
+use crate::types::StandardBufSerializer;
+use crate::Error::{self, PersistenceError};
 
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub struct ModuleId(usize);
@@ -23,18 +26,36 @@ pub struct ModuleId(usize);
 #[derive(Default)]
 pub struct VM {
     modules: BTreeMap<ModuleId, WrappedModule>,
+    storage_path: PathBuf,
 }
 
 impl VM {
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new<P: AsRef<Path>>(path: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        VM {
+            modules: BTreeMap::default(),
+            storage_path: path.into(),
+        }
+    }
+
+    pub fn ephemeral() -> Result<Self, Error> {
+        let vm = VM {
+            modules: BTreeMap::default(),
+            storage_path: tempdir()
+                .map_err(|e| PersistenceError(e))?
+                .path()
+                .into(),
+        };
+        Ok(vm)
     }
 
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
         println!("acquiring new store");
         let store = new_store_for_compilation();
+        let module = WrappedModule::new(&store, bytecode)?;
         let id = ModuleId(self.modules.len());
-        let module = WrappedModule::new(store, bytecode)?;
         self.modules.insert(id, module);
         Ok(id)
     }
@@ -136,7 +157,7 @@ mod tests {
 
     #[test]
     fn counter_read() -> Result<(), Error> {
-        let mut vm = VM::new();
+        let mut vm = VM::ephemeral()?;
         let id = vm.deploy(module_bytecode!("counter"))?;
         println!("after deploy");
 
@@ -147,7 +168,7 @@ mod tests {
 
     #[test]
     fn counter_read_write() -> Result<(), Error> {
-        let mut vm = VM::new();
+        let mut vm = VM::ephemeral()?;
         let id = vm.deploy(module_bytecode!("counter"))?;
 
         {

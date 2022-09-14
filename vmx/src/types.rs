@@ -14,4 +14,4 @@ pub type StandardBufSerializer<'a> = CompositeSerializer<
     BufferScratch<&'a mut [u8; SCRATCH_BUF_BYTES]>,
 >;
 
-pub type Error = Box<dyn std::error::Error>;
+// pub type Error = Box<dyn std::error::Error>;

@@ -4,7 +4,7 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-// use std::path::Path;
+use std::path::Path;
 // use std::sync::Arc;
 
 // use wasmer::wasmparser::Operator;
@@ -35,8 +35,7 @@ use crate::vm_linear_memory::VMLinearTunables;
 
 /// Creates a new store using the singlepass compiler configured to meter using
 /// the default cost function.
-// pub fn new_store<P: AsRef<Path>>(path: P) -> Store {
-pub fn new_store() -> Store {
+pub fn new_store<P: AsRef<Path>>(path: P) -> Store {
     let engine = Singlepass::default();
     // let metering = Arc::new(Metering::new(0, cost_function));
 

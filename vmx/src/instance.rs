@@ -14,13 +14,15 @@ use rkyv::{
     validation::validators::DefaultValidator,
     Archive, Deserialize, Infallible, Serialize,
 };
+use std::path::Path;
 use wasmer::{imports, Memory, TypedFunction};
 
 use dallo::SCRATCH_BUF_BYTES;
 
+use crate::error::*;
 use crate::module::WrappedModule;
 use crate::store::new_store;
-use crate::types::{Error, StandardBufSerializer};
+use crate::types::StandardBufSerializer;
 
 pub struct WrappedInstance {
     instance: wasmer::Instance,
@@ -29,11 +31,14 @@ pub struct WrappedInstance {
 }
 
 impl WrappedInstance {
-    pub fn new(wrap: &WrappedModule) -> Result<Self, Error> {
+    pub fn new<P: AsRef<Path>>(
+        wrap: &WrappedModule,
+        path: P,
+    ) -> Result<Self, Error> {
         let imports = imports! {};
         let module_bytes = wrap.as_bytes();
 
-        let mut store = new_store();
+        let mut store = new_store(path);
         let module =
             unsafe { wasmer::Module::deserialize(&store, module_bytes)? };
         // let module = wasmer::Module::new(wrap.as_store(),
@@ -67,13 +72,9 @@ impl WrappedInstance {
     {
         // TODO use bytecheck here
         self.with_arg_buffer(|abuf| {
-            println!("here 1");
             let slice = &abuf[..arg_len as usize];
-            println!("here 2");
             let ta: &T::Archived = check_archived_root::<T>(slice)?;
-            println!("here 3");
             let t = ta.deserialize(&mut Infallible).expect("Infallible");
-            println!("here 4");
             Ok(t)
         })
     }
