@@ -36,10 +36,10 @@ impl WrappedInstance {
         let mut store = new_store();
         let module =
             unsafe { wasmer::Module::deserialize(&store, module_bytes)? };
-        // let module = wasmer::Module::new(wrap.as_store(), wrap.as_bytecode())?;
+        // let module = wasmer::Module::new(wrap.as_store(),
+        // wrap.as_bytecode())?;
 
-        let instance =
-            wasmer::Instance::new(&mut store, &module, &imports)?;
+        let instance = wasmer::Instance::new(&mut store, &module, &imports)?;
 
         let memories: Vec<Memory> = instance
             .exports

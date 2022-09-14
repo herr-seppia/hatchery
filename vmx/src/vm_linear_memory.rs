@@ -4,30 +4,25 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-use bytecheck::Error;
-use memmap2::{MmapMut, MmapOptions};
-use more_asserts::assert_le;
-use more_asserts::assert_lt;
+// use more_asserts::assert_le;
+// use more_asserts::assert_lt;
 use std::cell::UnsafeCell;
-use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufRead, BufReader};
-use std::ops::{Deref, DerefMut};
+use std::fs::{File, OpenOptions};
+use std::io;
+// use std::ops::{Deref, DerefMut};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::ptr;
 use std::ptr::NonNull;
 use wasmer::Tunables;
 use wasmer_types::{MemoryType, Pages, TableType};
-use wasmer_vm::MaybeInstanceOwned;
 use wasmer_vm::{
     LinearMemory, MemoryError, MemoryStyle, TableStyle, VMMemory,
     VMMemoryDefinition, VMTable, VMTableDefinition,
 };
 
 const PAGE_SIZE: usize = 65536;
-const ZERO_HASH: [u8; 32] = [0u8; 32];
-const ZEROED_PAGE: [u8; PAGE_SIZE] = [0u8; PAGE_SIZE];
-const TOTAL_PAGES: u32 = 18;
+const TOTAL_PAGES: usize = 18;
 
 /// A WASM linear memory.
 #[derive(Debug)]
@@ -239,8 +234,8 @@ impl Tunables for VMLinearTunables {
         println!("**VMLinearTunables create_host_memory called");
         let memory = VMLinearMemory::new::<PathBuf>(
             None,
-            18 * PAGE_SIZE,
-            18 * PAGE_SIZE,
+            TOTAL_PAGES * PAGE_SIZE,
+            TOTAL_PAGES * PAGE_SIZE,
         )
         .unwrap();
         Ok(VMMemory::from_custom(memory))
@@ -255,8 +250,8 @@ impl Tunables for VMLinearTunables {
         println!("**VMLinearTunables create_vm_memory called");
         let memory = VMLinearMemory::new::<PathBuf>(
             None,
-            18 * PAGE_SIZE,
-            18 * PAGE_SIZE,
+            TOTAL_PAGES * PAGE_SIZE,
+            TOTAL_PAGES * PAGE_SIZE,
         )
         .unwrap();
         // now, it's important to update vm_definition_location with the memory

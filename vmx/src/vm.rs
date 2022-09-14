@@ -14,7 +14,7 @@ use rkyv::{
 
 use crate::module::WrappedModule;
 use crate::session::{Session, SessionMut};
-use crate::store::new_store;
+use crate::store::new_store_for_compilation;
 use crate::types::{Error, StandardBufSerializer};
 
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
@@ -32,7 +32,7 @@ impl VM {
 
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
         println!("acquiring new store");
-        let store = new_store();
+        let store = new_store_for_compilation();
         let id = ModuleId(self.modules.len());
         let module = WrappedModule::new(store, bytecode)?;
         self.modules.insert(id, module);
@@ -73,7 +73,7 @@ mod tests {
     use super::*;
     use crate::vm_linear_memory::VMLinearTunables;
 
-    #[ignore]
+    #[test]
     fn check_customtunables() -> Result<(), Box<dyn std::error::Error>> {
         use wasmer::{imports, wat2wasm, Instance, Memory, Module, Store};
         use wasmer_compiler_cranelift::Cranelift;

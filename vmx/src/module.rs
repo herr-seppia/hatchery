@@ -5,7 +5,7 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use crate::types::Error;
-use wasmer::{Module, Store};
+use wasmer::Store;
 
 pub struct WrappedModule {
     serialized: Vec<u8>,
