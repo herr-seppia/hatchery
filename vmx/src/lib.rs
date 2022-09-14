@@ -12,6 +12,7 @@ mod module;
 mod session;
 mod store;
 mod types;
+mod util;
 mod vm;
 mod vm_linear_memory;
 

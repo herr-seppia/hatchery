@@ -34,8 +34,9 @@ impl<'a> Session<'a> {
         if self.instances.get(&id).is_some() {
             return Ok(());
         }
+        let memory_path = self.vm.module_memory_path(&id);
         let module = self.vm.module_mut(id);
-        let wrapped = WrappedInstance::new(module)?;
+        let wrapped = WrappedInstance::new(module, memory_path)?;
         self.instances.insert(id, wrapped);
         Ok(())
     }
@@ -84,8 +85,9 @@ impl<'a> SessionMut<'a> {
         if self.instances.get(&id).is_some() {
             return Ok(());
         }
+        let memory_path = self.vm.module_memory_path(&id);
         let module = self.vm.module_mut(id);
-        let wrapped = WrappedInstance::new(module)?;
+        let wrapped = WrappedInstance::new(module, memory_path)?;
         self.instances.insert(id, wrapped);
         Ok(())
     }

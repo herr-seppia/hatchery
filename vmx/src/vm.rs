@@ -5,6 +5,7 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use std::collections::BTreeMap;
+use std::mem::{size_of, transmute};
 use std::path::{Path, PathBuf};
 
 use bytecheck::CheckBytes;
@@ -18,15 +19,43 @@ use crate::module::WrappedModule;
 use crate::session::{Session, SessionMut};
 use crate::store::new_store_for_compilation;
 use crate::types::StandardBufSerializer;
+use crate::util::module_id_to_name;
 use crate::Error::{self, PersistenceError};
 
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub struct ModuleId(usize);
 
+impl ModuleId {
+    pub fn to_bytes(&self) -> Box<[u8]> {
+        let bytes: [u8; size_of::<usize>()] =
+            unsafe { transmute(self.0.to_le()) };
+        Box::from(bytes)
+    }
+}
+
+pub struct MemoryPath {
+    path: PathBuf,
+}
+
+impl MemoryPath {
+    pub fn new<P: AsRef<Path>>(path: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        MemoryPath { path: path.into() }
+    }
+}
+
+impl AsRef<Path> for MemoryPath {
+    fn as_ref(&self) -> &Path {
+        self.path.as_path()
+    }
+}
+
 #[derive(Default)]
 pub struct VM {
     modules: BTreeMap<ModuleId, WrappedModule>,
-    storage_path: PathBuf,
+    base_memory_path: PathBuf,
 }
 
 impl VM {
@@ -36,19 +65,25 @@ impl VM {
     {
         VM {
             modules: BTreeMap::default(),
-            storage_path: path.into(),
+            base_memory_path: path.into(),
         }
     }
 
     pub fn ephemeral() -> Result<Self, Error> {
         let vm = VM {
             modules: BTreeMap::default(),
-            storage_path: tempdir()
+            base_memory_path: tempdir()
                 .map_err(|e| PersistenceError(e))?
                 .path()
                 .into(),
         };
         Ok(vm)
+    }
+
+    pub fn module_memory_path(&self, module_id: &ModuleId) -> MemoryPath {
+        MemoryPath::new(
+            self.base_memory_path.join(module_id_to_name(*module_id)),
+        )
     }
 
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
