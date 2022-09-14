@@ -10,7 +10,6 @@ use rkyv::{
     Serialize,
 };
 use std::collections::BTreeMap;
-use std::path::Path;
 
 use crate::error::Error;
 use crate::instance::WrappedInstance;

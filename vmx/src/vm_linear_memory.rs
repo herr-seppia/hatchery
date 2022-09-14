@@ -9,7 +9,6 @@
 use std::cell::UnsafeCell;
 use std::fs::{File, OpenOptions};
 use std::io;
-// use std::ops::{Deref, DerefMut};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -141,17 +140,17 @@ impl VMLinearMemory {
 impl LinearMemory for VMLinearMemory {
     fn ty(&self) -> MemoryType {
         MemoryType {
-            minimum: Pages::from(18u32),
-            maximum: Some(Pages::from(18u32)),
+            minimum: Pages::from(TOTAL_PAGES as u32),
+            maximum: Some(Pages::from(TOTAL_PAGES as u32)),
             shared: false,
         }
     }
     fn size(&self) -> Pages {
-        Pages::from(18u32)
+        Pages::from(TOTAL_PAGES as u32)
     }
     fn style(&self) -> MemoryStyle {
         MemoryStyle::Static {
-            bound: Pages::from(18u32),
+            bound: Pages::from(TOTAL_PAGES as u32),
             offset_guard_size: 0,
         }
     }
@@ -179,50 +178,34 @@ impl LinearMemory for VMLinearMemory {
     }
 }
 
-// impl Deref for VMLinearMemory {
-//     type Target = [u8];
-//
-//     fn deref(&self) -> &Self::Target {
-//         &self.mmap
-//     }
-// }
-
-// impl DerefMut for VMLinearMemory {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         &mut self.mmap
-//     }
-// }
-
-// impl AsRef<[u8]> for VMLinearMemory {
-//     fn as_ref(&self) -> &[u8] {
-//         &self.mmap
-//     }
-// }
-
-// impl AsMut<[u8]> for VMLinearMemory {
-//     fn as_mut(&mut self) -> &mut [u8] {
-//         &mut self.mmap
-//     }
-// }
-
 impl From<VMLinearMemory> for wasmer_vm::VMMemory {
     fn from(mem: VMLinearMemory) -> Self {
         Self(Box::new(mem))
     }
 }
 
-pub struct VMLinearTunables;
+pub struct VMLinearTunables {
+    path: PathBuf,
+}
+
+impl VMLinearTunables {
+    pub fn new<P: AsRef<Path>>(path: P) -> Self {
+        Self {
+            path: path.as_ref().to_path_buf(),
+        }
+    }
+}
+
 impl Tunables for VMLinearTunables {
     fn memory_style(&self, _memory: &MemoryType) -> MemoryStyle {
         MemoryStyle::Static {
-            bound: Pages::from(18u32),
+            bound: Pages::from(TOTAL_PAGES as u32),
             offset_guard_size: 0,
         }
     }
 
     /// Construct a `TableStyle` for the provided `TableType`
     fn table_style(&self, _table: &TableType) -> TableStyle {
-        println!("**VMLinearTunables table_style called");
         TableStyle::CallerChecksSignature
     }
 
@@ -231,7 +214,6 @@ impl Tunables for VMLinearTunables {
         _ty: &MemoryType,
         _style: &MemoryStyle,
     ) -> Result<VMMemory, MemoryError> {
-        println!("**VMLinearTunables create_host_memory called");
         let memory = VMLinearMemory::new::<PathBuf>(
             None,
             TOTAL_PAGES * PAGE_SIZE,
@@ -247,9 +229,8 @@ impl Tunables for VMLinearTunables {
         _style: &MemoryStyle,
         vm_definition_location: NonNull<VMMemoryDefinition>,
     ) -> Result<VMMemory, MemoryError> {
-        println!("**VMLinearTunables create_vm_memory called");
-        let memory = VMLinearMemory::new::<PathBuf>(
-            None,
+        let memory = VMLinearMemory::new(
+            Some(self.path.as_path()),
             TOTAL_PAGES * PAGE_SIZE,
             TOTAL_PAGES * PAGE_SIZE,
         )
@@ -272,7 +253,6 @@ impl Tunables for VMLinearTunables {
         ty: &TableType,
         style: &TableStyle,
     ) -> Result<VMTable, String> {
-        println!("**VMLinearTunables create_host_table called");
         VMTable::new(ty, style)
     }
 
@@ -287,10 +267,6 @@ impl Tunables for VMLinearTunables {
         style: &TableStyle,
         vm_definition_location: NonNull<VMTableDefinition>,
     ) -> Result<VMTable, String> {
-        println!(
-            "**VMLinearTunables create_vm_table called with ty={:?} style={:?}",
-            ty, style
-        );
         VMTable::from_definition(ty, style, vm_definition_location)
     }
 }

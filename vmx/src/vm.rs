@@ -166,7 +166,7 @@ mod tests {
         )?;
         let compiler = Cranelift::default();
 
-        let tunables = VMLinearTunables {};
+        let tunables = VMLinearTunables::new(tempdir()?.path());
         let mut store = Store::new_with_tunables(compiler, tunables);
         let module = Module::new(&store, wasm_bytes)?;
         let import_object = imports! {};
