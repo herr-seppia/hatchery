@@ -50,7 +50,7 @@ impl WrappedInstance {
         // let module = wasmer::Module::new(wrap.as_store(),
         // wrap.as_bytecode())?;
 
-        println!("instance initialization");
+        println!("instance initialization, store path={:?} preimage path={:?}", path, preimage_path);
         let instance = wasmer::Instance::new(&mut store, &module, &imports)?;
 
         if let Some(preimage) = preimage_path {

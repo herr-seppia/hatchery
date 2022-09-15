@@ -84,10 +84,10 @@ impl<'a> Session<'a> {
         i.query(method_name, arg)
     }
 
-    pub fn capture(&self, id: &ModuleId) -> Result<(), Error> {
+    pub fn commit(&self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.module_memory_path(id);
         let target_path = self.vm.session_memory_path(id, &self.id);
-        println!("capture from {:?} to {:?}", source_path, target_path);
+        println!("imm session capture from {:?} to {:?}", source_path, target_path);
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
             .map_err(SnapshotError)?;
         Ok(())
@@ -96,14 +96,12 @@ impl<'a> Session<'a> {
     pub fn restore(&self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.session_memory_path(id, &self.id);
         let target_path = self.vm.module_memory_path(id);
-        println!("restore from {:?} to {:?}", source_path, target_path);
+        println!("imm session restore from {:?} to {:?}", source_path, target_path);
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
             .map_err(SnapshotError)?;
         Ok(())
     }
 }
-
-type CommitId = usize;
 
 pub struct SessionMut<'a> {
     vm: &'a mut VM,
@@ -154,9 +152,7 @@ impl<'a> SessionMut<'a> {
             + for<'b> CheckBytes<DefaultValidator<'b>>,
     {
         let mut session = Session::new(self.vm);
-        println!("before query capture");
-        session.capture(&id)?;
-        println!("after query capture");
+        session.commit(&id)?;
         let ret = session.query(id, method_name, arg);
         session.restore(&id)?;
         ret
@@ -178,10 +174,10 @@ impl<'a> SessionMut<'a> {
         i.transact(method_name, arg)
     }
 
-    pub fn capture(&mut self, id: &ModuleId) -> Result<(), Error> {
+    pub fn commit(&mut self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.module_memory_path(id);
         let target_path = self.vm.session_memory_path(id, &self.id);
-        println!("capture mut from {:?} to {:?}", source_path, target_path);
+        println!("mut session capture from {:?} to {:?}", source_path, target_path);
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
             .map_err(SnapshotError)?;
         self.vm
@@ -192,13 +188,9 @@ impl<'a> SessionMut<'a> {
     pub fn restore(&self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.session_memory_path(id, &self.id);
         let target_path = self.vm.module_memory_path(id);
-        println!("restore mut from {:?} to {:?}", source_path, target_path);
+        println!("mut session restore from {:?} to {:?}", source_path, target_path);
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
             .map_err(SnapshotError)?;
         Ok(())
-    }
-
-    pub fn commit(self) -> CommitId {
-        todo!()
     }
 }

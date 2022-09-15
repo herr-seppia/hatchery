@@ -176,7 +176,7 @@ mod tests {
     use super::*;
     use crate::vm_linear_memory::VMLinearTunables;
 
-    #[ignore]
+    #[test]
     fn check_customtunables() -> Result<(), Box<dyn std::error::Error>> {
         use wasmer::{imports, wat2wasm, Instance, Memory, Module, Store};
         use wasmer_compiler_cranelift::Cranelift;
@@ -237,7 +237,7 @@ mod tests {
         Ok(())
     }
 
-    #[ignore]
+    #[test]
     fn counter_read() -> Result<(), Error> {
         let mut vm = VM::ephemeral()?;
         let id = vm.deploy(module_bytecode!("counter"))?;
@@ -255,28 +255,34 @@ mod tests {
         {
             let mut session = vm.session_mut();
 
+            println!("read_value FC");
             assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfc);
 
+            println!("increment");
             session.transact::<(), ()>(id, "increment", ())?;
-            session.capture(&id);
+            session.commit(&id)?; // workaround
 
+            println!("read_value FD");
             assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfd);
         }
 
-        // mutable session dropped without commiting.
+        // mutable session dropped without committing.
         // old counter value still accessible.
 
-        // assert_eq!(vm.query::<(), i64>(id, "read_value", ())?, 0xfc);
-        //
-        // let mut other_session = vm.session_mut();
-        //
-        // other_session.transact::<(), ()>(id, "increment", ())?;
-        //
+        println!("read_value FC");
+        assert_eq!(vm.query::<(), i64>(id, "read_value", ())?, 0xfc);
+
+        let mut other_session = vm.session_mut();
+
+        println!("increment");
+        other_session.transact::<(), ()>(id, "increment", ())?;
+        other_session.commit(&id)?; // workaround
         // let commit_id = other_session.commit();
 
         // session committed, new value accessible
 
-        // assert_eq!(vm.query::<(), i64>(id, "read_value", ())?, 0xfd);
+        println!("read_value FD");
+        assert_eq!(vm.query::<(), i64>(id, "read_value", ())?, 0xfd);
 
         Ok(())
     }
