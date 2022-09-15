@@ -34,7 +34,7 @@ impl WrappedInstance {
     pub fn new<P: AsRef<Path>, Q: AsRef<Path>>(
         wrap: &WrappedModule,
         path: P,
-        preimage_path: Option<Q>, /* workaround until we are able to
+        preimage_path: Option<Q>, /* todo: workaround until we are able to
                                    * disable memory initialization */
     ) -> Result<Self, Error>
     where
@@ -47,14 +47,15 @@ impl WrappedInstance {
         let mut store = new_store(path.as_ref());
         let module =
             unsafe { wasmer::Module::deserialize(&store, module_bytes)? };
-        // let module = wasmer::Module::new(wrap.as_store(),
-        // wrap.as_bytecode())?;
 
-        println!("instance initialization, store path={:?} preimage path={:?}", path, preimage_path);
+        println!(
+            "instance initialization, store path={:?} preimage path={:?}",
+            path, preimage_path
+        );
         let instance = wasmer::Instance::new(&mut store, &module, &imports)?;
 
+        // todo: workaround
         if let Some(preimage) = preimage_path {
-            // workaround
             println!(
                 "restore preimage from {:?} to {:?}",
                 preimage.as_ref(),

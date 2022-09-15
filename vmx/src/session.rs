@@ -87,7 +87,10 @@ impl<'a> Session<'a> {
     pub fn commit(&self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.module_memory_path(id);
         let target_path = self.vm.session_memory_path(id, &self.id);
-        println!("imm session capture from {:?} to {:?}", source_path, target_path);
+        println!(
+            "imm session capture from {:?} to {:?}",
+            source_path, target_path
+        );
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
             .map_err(SnapshotError)?;
         Ok(())
@@ -96,7 +99,10 @@ impl<'a> Session<'a> {
     pub fn restore(&self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.session_memory_path(id, &self.id);
         let target_path = self.vm.module_memory_path(id);
-        println!("imm session restore from {:?} to {:?}", source_path, target_path);
+        println!(
+            "imm session restore from {:?} to {:?}",
+            source_path, target_path
+        );
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
             .map_err(SnapshotError)?;
         Ok(())
@@ -177,7 +183,10 @@ impl<'a> SessionMut<'a> {
     pub fn commit(&mut self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.module_memory_path(id);
         let target_path = self.vm.session_memory_path(id, &self.id);
-        println!("mut session capture from {:?} to {:?}", source_path, target_path);
+        println!(
+            "mut session capture from {:?} to {:?}",
+            source_path, target_path
+        );
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
             .map_err(SnapshotError)?;
         self.vm
@@ -188,7 +197,10 @@ impl<'a> SessionMut<'a> {
     pub fn restore(&self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.session_memory_path(id, &self.id);
         let target_path = self.vm.module_memory_path(id);
-        println!("mut session restore from {:?} to {:?}", source_path, target_path);
+        println!(
+            "mut session restore from {:?} to {:?}",
+            source_path, target_path
+        );
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
             .map_err(SnapshotError)?;
         Ok(())

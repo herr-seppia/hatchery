@@ -53,7 +53,8 @@ impl AsRef<Path> for MemoryPath {
     }
 }
 
-// PreimagePath may be removed once we are able to disable memory initialization
+// todo: PreimagePath may be removed once we are able to disable memory
+// initialization
 #[derive(Debug)]
 pub struct PreimagePath {
     path: PathBuf,
@@ -78,8 +79,9 @@ impl AsRef<Path> for PreimagePath {
 pub struct VM {
     modules: BTreeMap<ModuleId, WrappedModule>,
     base_memory_path: PathBuf,
-    preimage_path: Option<PreimagePath>, /* workaround until we are able to
-                                          * disable memory initialization */
+    preimage_path: Option<PreimagePath>, /* todo: workaround until we are
+                                          * able to disable memory
+                                          * initialization */
 }
 
 impl VM {
@@ -260,7 +262,7 @@ mod tests {
 
             println!("increment");
             session.transact::<(), ()>(id, "increment", ())?;
-            session.commit(&id)?; // workaround
+            session.commit(&id)?; // todo: workaround
 
             println!("read_value FD");
             assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfd);
@@ -276,8 +278,8 @@ mod tests {
 
         println!("increment");
         other_session.transact::<(), ()>(id, "increment", ())?;
-        other_session.commit(&id)?; // workaround
-        // let commit_id = other_session.commit();
+        other_session.commit(&id)?; // todo: workaround
+                                    // let commit_id = other_session.commit();
 
         // session committed, new value accessible
 

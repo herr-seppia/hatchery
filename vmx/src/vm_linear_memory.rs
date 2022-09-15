@@ -4,8 +4,6 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-// use more_asserts::assert_le;
-// use more_asserts::assert_lt;
 use std::cell::UnsafeCell;
 use std::fs::{File, OpenOptions};
 use std::io;
@@ -115,8 +113,6 @@ impl VMLinearMemory {
         let page_size = region::page::size();
         assert_eq!(start & (page_size - 1), 0);
         assert_eq!(len & (page_size - 1), 0);
-        // assert_lt!(len, self.len);
-        // assert_lt!(start, self.len - len);
 
         if let Some(file) = &self.file_opt {
             if start > 0 {
