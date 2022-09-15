@@ -44,6 +44,7 @@ impl WrappedInstance {
         // let module = wasmer::Module::new(wrap.as_store(),
         // wrap.as_bytecode())?;
 
+        println!("instance initialization");
         let instance = wasmer::Instance::new(&mut store, &module, &imports)?;
 
         let memories: Vec<Memory> = instance
@@ -139,14 +140,10 @@ impl WrappedInstance {
             .instance
             .exports
             .get_typed_function(&self.store, method_name)?;
-        println!("instance query - before function call: {}", method_name);
         let ret_len =
             fun.call(&mut self.store, arg_len).expect("call succeeded");
-        println!("instance query - after function call: {}", method_name);
 
-        let r = self.read_from_arg_buffer(ret_len);
-        println!("instance query - after read from arg buffer");
-        r
+        self.read_from_arg_buffer(ret_len)
     }
 
     pub fn transact<Arg, Ret>(

@@ -29,6 +29,7 @@ pub enum Error {
     CompositeSerializerError(Compo),
     // OutOfPoints(ModuleId),
     PersistenceError(std::io::Error),
+    SnapshotError(std::io::Error),
     ValidationError,
 }
 

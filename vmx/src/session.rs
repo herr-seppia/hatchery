@@ -5,20 +5,38 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use bytecheck::CheckBytes;
+use rand::prelude::*;
 use rkyv::{
     validation::validators::DefaultValidator, Archive, Deserialize, Infallible,
     Serialize,
 };
 use std::collections::BTreeMap;
+use std::mem::{size_of, transmute};
 
 use crate::error::Error;
 use crate::instance::WrappedInstance;
 use crate::types::StandardBufSerializer;
 use crate::vm::{ModuleId, VM};
+use crate::Error::SnapshotError;
+
+pub const SESSION_ID_BYTES: usize = 4;
+
+#[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
+pub struct SessionId([u8; SESSION_ID_BYTES]);
+
+impl SessionId {
+    pub fn new() -> SessionId {
+        SessionId(thread_rng().gen::<[u8; SESSION_ID_BYTES]>())
+    }
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0[..]
+    }
+}
 
 pub struct Session<'a> {
     vm: &'a mut VM,
     instances: BTreeMap<ModuleId, WrappedInstance>,
+    id: SessionId,
 }
 
 impl<'a> Session<'a> {
@@ -26,6 +44,7 @@ impl<'a> Session<'a> {
         Session {
             vm,
             instances: BTreeMap::new(),
+            id: SessionId::new(),
         }
     }
 
@@ -63,6 +82,22 @@ impl<'a> Session<'a> {
         let i = self.get_instance(id)?;
         i.query(method_name, arg)
     }
+
+    pub fn capture(&self, id: &ModuleId) -> Result<(), Error> {
+        let source_path = self.vm.module_memory_path(id);
+        let target_path = self.vm.session_memory_path(id, &self.id);
+        println!("capture from {:?} to {:?}", source_path, target_path);
+        std::fs::copy(source_path, target_path).map_err(SnapshotError)?;
+        Ok(())
+    }
+
+    pub fn restore(&self, id: &ModuleId) -> Result<(), Error> {
+        let source_path = self.vm.session_memory_path(id, &self.id);
+        let target_path = self.vm.module_memory_path(id);
+        println!("restore from {:?} to {:?}", source_path, target_path);
+        std::fs::copy(source_path, target_path).map_err(SnapshotError)?;
+        Ok(())
+    }
 }
 
 type CommitId = usize;
@@ -70,6 +105,7 @@ type CommitId = usize;
 pub struct SessionMut<'a> {
     vm: &'a mut VM,
     instances: BTreeMap<ModuleId, WrappedInstance>,
+    id: SessionId,
 }
 
 impl<'a> SessionMut<'a> {
@@ -77,6 +113,7 @@ impl<'a> SessionMut<'a> {
         SessionMut {
             vm,
             instances: BTreeMap::new(),
+            id: SessionId::new(),
         }
     }
 
@@ -95,7 +132,6 @@ impl<'a> SessionMut<'a> {
         &mut self,
         id: ModuleId,
     ) -> Result<&mut WrappedInstance, Error> {
-        println!("get instance2");
         self.initialize_module(id)?;
         Ok(self.instances.get_mut(&id).expect("initialized above"))
     }
@@ -113,7 +149,12 @@ impl<'a> SessionMut<'a> {
             + for<'b> CheckBytes<DefaultValidator<'b>>,
     {
         let mut session = Session::new(self.vm);
-        session.query(id, method_name, arg)
+        println!("before query capture");
+        session.capture(&id)?;
+        println!("after query capture");
+        let ret = session.query(id, method_name, arg);
+        session.restore(&id)?;
+        ret
     }
 
     pub fn transact<Arg, Ret>(
@@ -130,6 +171,22 @@ impl<'a> SessionMut<'a> {
     {
         let i = self.get_instance(id)?;
         i.transact(method_name, arg)
+    }
+
+    pub fn capture(&self, id: &ModuleId) -> Result<(), Error> {
+        let source_path = self.vm.module_memory_path(id);
+        let target_path = self.vm.session_memory_path(id, &self.id);
+        println!("capture mut from {:?} to {:?}", source_path, target_path);
+        std::fs::copy(source_path, target_path).map_err(SnapshotError)?;
+        Ok(())
+    }
+
+    pub fn restore(&self, id: &ModuleId) -> Result<(), Error> {
+        let source_path = self.vm.session_memory_path(id, &self.id);
+        let target_path = self.vm.module_memory_path(id);
+        println!("restore mut from {:?} to {:?}", source_path, target_path);
+        std::fs::copy(source_path, target_path).map_err(SnapshotError)?;
+        Ok(())
     }
 
     pub fn commit(self) -> CommitId {

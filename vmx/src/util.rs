@@ -4,10 +4,17 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
+use crate::session::SessionId;
 use crate::vm::ModuleId;
+use rand::prelude::*;
+use std::mem::{size_of, transmute};
 
 pub fn module_id_to_name(module_id: ModuleId) -> String {
     format!("{}", ByteArrayWrapper(module_id.to_bytes().as_ref()))
+}
+
+pub fn session_id_to_name(session_id: SessionId) -> String {
+    format!("{}", ByteArrayWrapper(session_id.as_bytes()))
 }
 
 pub struct ByteArrayWrapper<'a>(pub &'a [u8]);

@@ -16,10 +16,10 @@ use rkyv::{
 use tempfile::tempdir;
 
 use crate::module::WrappedModule;
-use crate::session::{Session, SessionMut};
+use crate::session::{Session, SessionId, SessionMut};
 use crate::store::new_store_for_compilation;
 use crate::types::StandardBufSerializer;
-use crate::util::module_id_to_name;
+use crate::util::{module_id_to_name, session_id_to_name};
 use crate::Error::{self, PersistenceError};
 
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
@@ -33,6 +33,7 @@ impl ModuleId {
     }
 }
 
+#[derive(Debug)]
 pub struct MemoryPath {
     path: PathBuf,
 }
@@ -86,8 +87,19 @@ impl VM {
         )
     }
 
+    pub fn session_memory_path(
+        &self,
+        module_id: &ModuleId,
+        session_id: &SessionId,
+    ) -> MemoryPath {
+        let session_id_name = &*session_id_to_name(*session_id);
+        let mut name = module_id_to_name(*module_id);
+        name.push_str(session_id_name);
+        MemoryPath::new(self.base_memory_path.join(name))
+    }
+
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
-        println!("acquiring new store");
+        println!("acquiring new store for compilation");
         let store = new_store_for_compilation();
         let module = WrappedModule::new(&store, bytecode)?;
         let id = ModuleId(self.modules.len());
@@ -129,7 +141,7 @@ mod tests {
     use super::*;
     use crate::vm_linear_memory::VMLinearTunables;
 
-    #[test]
+    #[ignore]
     fn check_customtunables() -> Result<(), Box<dyn std::error::Error>> {
         use wasmer::{imports, wat2wasm, Instance, Memory, Module, Store};
         use wasmer_compiler_cranelift::Cranelift;
@@ -190,11 +202,10 @@ mod tests {
         Ok(())
     }
 
-    #[test]
+    #[ignore]
     fn counter_read() -> Result<(), Error> {
         let mut vm = VM::ephemeral()?;
         let id = vm.deploy(module_bytecode!("counter"))?;
-        println!("after deploy");
 
         assert_eq!(vm.query::<(), i64>(id, "read_value", ())?, 0xfc);
 
@@ -203,18 +214,24 @@ mod tests {
 
     #[test]
     fn counter_read_write() -> Result<(), Error> {
-        let mut vm = VM::ephemeral()?;
+        let mut vm = VM::new("/tmp/b00");
         let id = vm.deploy(module_bytecode!("counter"))?;
 
         {
             let mut session = vm.session_mut();
 
+            println!("before first query");
             assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfc);
+            println!("after first query");
 
+            println!("before transact");
             session.transact::<(), ()>(id, "increment", ())?;
+            println!("after transact");
+            session.capture(&id);
 
-            // assert_eq!(session.query::<(), i64>(id, "read_value", ())?,
-            // 0xfd);
+            println!("before second query");
+            assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfd);
+            println!("after second query");
         }
 
         // mutable session dropped without commiting.

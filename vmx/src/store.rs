@@ -41,6 +41,7 @@ pub fn new_store<P: AsRef<Path>>(path: P) -> Store {
 
     // compiler_config.push_middleware(metering);
 
+    println!("acquiring new store at path {:?}", path.as_ref());
     Store::new_with_tunables(engine, VMLinearTunables::new(path))
 
     // Store::default()
