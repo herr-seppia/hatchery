@@ -11,12 +11,11 @@ use rkyv::{
     Serialize,
 };
 use std::collections::BTreeMap;
-use std::mem::{size_of, transmute};
 
 use crate::error::Error;
 use crate::instance::WrappedInstance;
 use crate::types::StandardBufSerializer;
-use crate::vm::{ModuleId, VM};
+use crate::vm::{ModuleId, PreimagePath, VM};
 use crate::Error::SnapshotError;
 
 pub const SESSION_ID_BYTES: usize = 4;
@@ -53,8 +52,10 @@ impl<'a> Session<'a> {
             return Ok(());
         }
         let memory_path = self.vm.module_memory_path(&id);
+        let preimage_path = self.vm.preimage_path();
         let module = self.vm.module_mut(id);
-        let wrapped = WrappedInstance::new(module, memory_path)?;
+        let wrapped = WrappedInstance::new(module, memory_path, preimage_path)?;
+        self.vm.set_preimage_path(None);
         self.instances.insert(id, wrapped);
         Ok(())
     }
@@ -87,7 +88,8 @@ impl<'a> Session<'a> {
         let source_path = self.vm.module_memory_path(id);
         let target_path = self.vm.session_memory_path(id, &self.id);
         println!("capture from {:?} to {:?}", source_path, target_path);
-        std::fs::copy(source_path, target_path).map_err(SnapshotError)?;
+        std::fs::copy(source_path.as_ref(), target_path.as_ref())
+            .map_err(SnapshotError)?;
         Ok(())
     }
 
@@ -95,7 +97,8 @@ impl<'a> Session<'a> {
         let source_path = self.vm.session_memory_path(id, &self.id);
         let target_path = self.vm.module_memory_path(id);
         println!("restore from {:?} to {:?}", source_path, target_path);
-        std::fs::copy(source_path, target_path).map_err(SnapshotError)?;
+        std::fs::copy(source_path.as_ref(), target_path.as_ref())
+            .map_err(SnapshotError)?;
         Ok(())
     }
 }
@@ -122,8 +125,10 @@ impl<'a> SessionMut<'a> {
             return Ok(());
         }
         let memory_path = self.vm.module_memory_path(&id);
+        let preimage_path = self.vm.preimage_path();
         let module = self.vm.module_mut(id);
-        let wrapped = WrappedInstance::new(module, memory_path)?;
+        let wrapped = WrappedInstance::new(module, memory_path, preimage_path)?;
+        self.vm.set_preimage_path(None);
         self.instances.insert(id, wrapped);
         Ok(())
     }
@@ -173,11 +178,14 @@ impl<'a> SessionMut<'a> {
         i.transact(method_name, arg)
     }
 
-    pub fn capture(&self, id: &ModuleId) -> Result<(), Error> {
+    pub fn capture(&mut self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.module_memory_path(id);
         let target_path = self.vm.session_memory_path(id, &self.id);
         println!("capture mut from {:?} to {:?}", source_path, target_path);
-        std::fs::copy(source_path, target_path).map_err(SnapshotError)?;
+        std::fs::copy(source_path.as_ref(), target_path.as_ref())
+            .map_err(SnapshotError)?;
+        self.vm
+            .set_preimage_path(Some(PreimagePath::new(target_path.as_ref())));
         Ok(())
     }
 
@@ -185,7 +193,8 @@ impl<'a> SessionMut<'a> {
         let source_path = self.vm.session_memory_path(id, &self.id);
         let target_path = self.vm.module_memory_path(id);
         println!("restore mut from {:?} to {:?}", source_path, target_path);
-        std::fs::copy(source_path, target_path).map_err(SnapshotError)?;
+        std::fs::copy(source_path.as_ref(), target_path.as_ref())
+            .map_err(SnapshotError)?;
         Ok(())
     }
 

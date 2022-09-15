@@ -53,10 +53,33 @@ impl AsRef<Path> for MemoryPath {
     }
 }
 
+// PreimagePath may be removed once we are able to disable memory initialization
+#[derive(Debug)]
+pub struct PreimagePath {
+    path: PathBuf,
+}
+
+impl PreimagePath {
+    pub fn new<P: AsRef<Path>>(path: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        PreimagePath { path: path.into() }
+    }
+}
+
+impl AsRef<Path> for PreimagePath {
+    fn as_ref(&self) -> &Path {
+        self.path.as_path()
+    }
+}
+
 #[derive(Default)]
 pub struct VM {
     modules: BTreeMap<ModuleId, WrappedModule>,
     base_memory_path: PathBuf,
+    preimage_path: Option<PreimagePath>, /* workaround until we are able to
+                                          * disable memory initialization */
 }
 
 impl VM {
@@ -67,6 +90,7 @@ impl VM {
         VM {
             modules: BTreeMap::default(),
             base_memory_path: path.into(),
+            preimage_path: None,
         }
     }
 
@@ -77,6 +101,7 @@ impl VM {
                 .map_err(|e| PersistenceError(e))?
                 .path()
                 .into(),
+            preimage_path: None,
         };
         Ok(vm)
     }
@@ -96,6 +121,16 @@ impl VM {
         let mut name = module_id_to_name(*module_id);
         name.push_str(session_id_name);
         MemoryPath::new(self.base_memory_path.join(name))
+    }
+
+    pub fn preimage_path(&self) -> Option<PreimagePath> {
+        self.preimage_path
+            .as_ref()
+            .map(|p| PreimagePath::new(p.as_ref()))
+    }
+
+    pub fn set_preimage_path(&mut self, preimage_path: Option<PreimagePath>) {
+        self.preimage_path = preimage_path;
     }
 
     pub fn deploy(&mut self, bytecode: &[u8]) -> Result<ModuleId, Error> {
@@ -220,18 +255,12 @@ mod tests {
         {
             let mut session = vm.session_mut();
 
-            println!("before first query");
             assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfc);
-            println!("after first query");
 
-            println!("before transact");
             session.transact::<(), ()>(id, "increment", ())?;
-            println!("after transact");
             session.capture(&id);
 
-            println!("before second query");
             assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfd);
-            println!("after second query");
         }
 
         // mutable session dropped without commiting.

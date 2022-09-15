@@ -31,14 +31,20 @@ pub struct WrappedInstance {
 }
 
 impl WrappedInstance {
-    pub fn new<P: AsRef<Path>>(
+    pub fn new<P: AsRef<Path>, Q: AsRef<Path>>(
         wrap: &WrappedModule,
         path: P,
-    ) -> Result<Self, Error> {
+        preimage_path: Option<Q>, /* workaround until we are able to
+                                   * disable memory initialization */
+    ) -> Result<Self, Error>
+    where
+        P: std::fmt::Debug,
+        Q: std::fmt::Debug,
+    {
         let imports = imports! {};
         let module_bytes = wrap.as_bytes();
 
-        let mut store = new_store(path);
+        let mut store = new_store(path.as_ref());
         let module =
             unsafe { wasmer::Module::deserialize(&store, module_bytes)? };
         // let module = wasmer::Module::new(wrap.as_store(),
@@ -46,6 +52,17 @@ impl WrappedInstance {
 
         println!("instance initialization");
         let instance = wasmer::Instance::new(&mut store, &module, &imports)?;
+
+        if let Some(preimage) = preimage_path {
+            // workaround
+            println!(
+                "restore preimage from {:?} to {:?}",
+                preimage.as_ref(),
+                path.as_ref()
+            );
+            std::fs::copy(preimage.as_ref(), path.as_ref())
+                .expect("preimage restoration works");
+        }
 
         let memories: Vec<Memory> = instance
             .exports

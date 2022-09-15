@@ -7,7 +7,6 @@
 use crate::session::SessionId;
 use crate::vm::ModuleId;
 use rand::prelude::*;
-use std::mem::{size_of, transmute};
 
 pub fn module_id_to_name(module_id: ModuleId) -> String {
     format!("{}", ByteArrayWrapper(module_id.to_bytes().as_ref()))
