@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn counter_read_write() -> Result<(), Error> {
-        let mut vm = VM::new("/tmp/b00");
+        let mut vm = VM::ephemeral()?;
         let id = vm.deploy(module_bytecode!("counter"))?;
 
         {

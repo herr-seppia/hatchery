@@ -64,8 +64,7 @@ impl<'a> Session<'a> {
         &mut self,
         id: ModuleId,
     ) -> Result<&mut WrappedInstance, Error> {
-        self.initialize_module(id)?;
-        Ok(self.instances.get_mut(&id).expect("initialized above"))
+        Ok(self.instances.get_mut(&id).expect("instance initialized"))
     }
 
     pub fn query<Arg, Ret>(
@@ -80,15 +79,19 @@ impl<'a> Session<'a> {
         Ret::Archived: Deserialize<Ret, Infallible>
             + for<'b> CheckBytes<DefaultValidator<'b>>,
     {
+        self.initialize_module(id)?;
+        self.commit(&id)?;
         let i = self.get_instance(id)?;
-        i.query(method_name, arg)
+        let ret = i.query(method_name, arg);
+        self.restore(&id)?;
+        ret
     }
 
     pub fn commit(&self, id: &ModuleId) -> Result<(), Error> {
         let source_path = self.vm.module_memory_path(id);
         let target_path = self.vm.session_memory_path(id, &self.id);
         println!(
-            "imm session capture from {:?} to {:?}",
+            "imm session commit from {:?} to {:?}",
             source_path, target_path
         );
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
@@ -158,9 +161,7 @@ impl<'a> SessionMut<'a> {
             + for<'b> CheckBytes<DefaultValidator<'b>>,
     {
         let mut session = Session::new(self.vm);
-        session.commit(&id)?;
         let ret = session.query(id, method_name, arg);
-        session.restore(&id)?;
         ret
     }
 
@@ -184,7 +185,7 @@ impl<'a> SessionMut<'a> {
         let source_path = self.vm.module_memory_path(id);
         let target_path = self.vm.session_memory_path(id, &self.id);
         println!(
-            "mut session capture from {:?} to {:?}",
+            "mut session commit from {:?} to {:?}",
             source_path, target_path
         );
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
