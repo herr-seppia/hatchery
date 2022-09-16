@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use bytecheck::CheckBytes;
-use dallo::{ModuleId, StandardBufSerializer, MODULE_ID_BYTES};
+use uplink::{ModuleId, StandardBufSerializer, MODULE_ID_BYTES};
 use native::NativeQueries;
 use parking_lot::ReentrantMutex;
 use rkyv::{

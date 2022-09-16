@@ -20,7 +20,7 @@ fn panic(panic_info: &PanicInfo) -> ! {
             pub(crate) fn host_panic(len: u32);
         }
 
-        use dallo::bufwriter::BufWriter;
+        use uplink::bufwriter::BufWriter;
 
         if let Some(msg) = panic_info.message() {
             let len = crate::state::with_debug_buf(|b| {

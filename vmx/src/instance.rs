@@ -17,7 +17,7 @@ use rkyv::{
 use std::path::Path;
 use wasmer::{imports, Memory, TypedFunction};
 
-use dallo::SCRATCH_BUF_BYTES;
+use uplink::SCRATCH_BUF_BYTES;
 
 use crate::error::*;
 use crate::module::WrappedModule;
@@ -117,7 +117,7 @@ impl WrappedInstance {
     {
         self.with_memory_mut(|memory_bytes| {
             let a = self.arg_buf_ofs;
-            let b = dallo::ARGBUF_LEN;
+            let b = uplink::ARGBUF_LEN;
             let begin = &mut memory_bytes[a..];
             let trimmed = &mut begin[..b];
             f(trimmed)

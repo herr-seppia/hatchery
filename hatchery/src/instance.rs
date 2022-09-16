@@ -7,7 +7,7 @@
 use colored::*;
 
 use bytecheck::CheckBytes;
-use dallo::{
+use uplink::{
     ModuleId, StandardBufSerializer, MODULE_ID_BYTES, SCRATCH_BUF_BYTES,
 };
 use rkyv::{
@@ -211,7 +211,7 @@ impl Instance {
     {
         self.with_memory_mut(|memory_bytes| {
             let a = self.arg_buf_ofs as usize;
-            let b = dallo::ARGBUF_LEN;
+            let b = uplink::ARGBUF_LEN;
             let begin = &mut memory_bytes[a..];
             let trimmed = &mut begin[..b];
             f(trimmed)
@@ -265,7 +265,7 @@ impl Instance {
                         }
 
                         let buf_start = self.arg_buf_ofs as usize;
-                        let buf_end = buf_start + dallo::ARGBUF_LEN as usize;
+                        let buf_end = buf_start + uplink::ARGBUF_LEN as usize;
                         let heap_base = self.heap_base as usize;
 
                         if ofs + i >= buf_start && ofs + i < buf_end {

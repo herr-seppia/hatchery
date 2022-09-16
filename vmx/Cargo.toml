@@ -13,7 +13,7 @@ wasmer-compiler-cranelift = { git = "https://github.com/wasmerio/wasmer", rev = 
 bytecheck = "0.6"
 rkyv = { version = "0.7", features = ["validation"] }
 
-dallo = { path = "../dallo" }
+uplink = { path = "../uplink" }
 parking_lot = "0.12.1"
 libc = { version = "^0.2", default-features = false }
 region = { version = "3.0" }
