@@ -5,16 +5,9 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 #![no_std]
-#![feature(
-    core_intrinsics,
-    lang_items,
-    alloc_error_handler,
-    arbitrary_self_types
-)]
+#![feature(core_intrinsics, lang_items, arbitrary_self_types)]
 
-use uplink::{HostAlloc, ModuleId, State};
-#[global_allocator]
-static ALLOCATOR: HostAlloc = HostAlloc;
+use uplink::{ModuleId, State};
 
 #[no_mangle]
 static SELF_ID: ModuleId = ModuleId::uninitialized();
@@ -61,7 +54,8 @@ impl SelfSnapshot {
         // A: we live with inconsistencies and communicate them.
         // B: we update self, which then should be passed to the transaction
 
-        if uplink::query::<_, i32>(callee, "crossover", new_value) == old_value {
+        if uplink::query::<_, i32>(callee, "crossover", new_value) == old_value
+        {
             panic!("OH NOES")
         }
     }

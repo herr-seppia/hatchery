@@ -6,14 +6,11 @@
 
 #![no_std]
 #![no_main]
+
 extern crate alloc;
 
-use uplink::{HostAlloc, ModuleId, State};
-
-#[global_allocator]
-static ALLOCATOR: HostAlloc = HostAlloc;
-
 use alloc::vec::Vec;
+use uplink::{ModuleId, State};
 
 pub struct Vector {
     a: Vec<i16>,

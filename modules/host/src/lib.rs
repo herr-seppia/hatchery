@@ -9,9 +9,7 @@
 
 extern crate alloc;
 
-use uplink::{HostAlloc, ModuleId, State};
-#[global_allocator]
-static ALLOCATOR: HostAlloc = HostAlloc;
+use uplink::{ModuleId, State};
 
 pub struct Hoster;
 

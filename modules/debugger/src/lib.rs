@@ -10,9 +10,6 @@
 
 extern crate alloc;
 
-#[global_allocator]
-static ALLOCATOR: uplink::HostAlloc = uplink::HostAlloc;
-
 #[derive(Default)]
 pub struct Debug;
 

@@ -11,9 +11,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 
-use uplink::{HostAlloc, ModuleId, State};
-#[global_allocator]
-static ALLOCATOR: HostAlloc = HostAlloc;
+use uplink::{ModuleId, State};
 
 // One Box, many `Boxen`
 pub struct Boxen {

@@ -8,9 +8,6 @@
 #![no_std]
 #![no_main]
 
-#[global_allocator]
-static ALLOCATOR: uplink::HostAlloc = uplink::HostAlloc;
-
 #[derive(Default)]
 pub struct Height;
 

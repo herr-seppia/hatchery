@@ -6,12 +6,6 @@
 
 use core::panic::PanicInfo;
 
-#[alloc_error_handler]
-#[allow(clippy::empty_loop)]
-fn foo(_: core::alloc::Layout) -> ! {
-    loop {}
-}
-
 #[panic_handler]
 fn panic(panic_info: &PanicInfo) -> ! {
     #[cfg(debug)]
@@ -39,3 +33,12 @@ fn panic(panic_info: &PanicInfo) -> ! {
 
 #[lang = "eh_personality"]
 extern "C" fn eh_personality() {}
+
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
+#[alloc_error_handler]
+#[allow(clippy::empty_loop)]
+fn foo(_: core::alloc::Layout) -> ! {
+    loop {}
+}

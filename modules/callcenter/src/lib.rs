@@ -9,12 +9,9 @@
 #![no_main]
 
 use uplink::{
-    wrap_query, wrap_transaction, HostAlloc, ModuleId, RawQuery, RawResult,
+    wrap_query, wrap_transaction, ModuleId, RawQuery, RawResult,
     RawTransaction, State,
 };
-
-#[global_allocator]
-static ALLOCATOR: HostAlloc = HostAlloc;
 
 #[derive(Default)]
 pub struct Callcenter;
@@ -30,7 +27,6 @@ impl Callcenter {
     }
 
     pub fn increment_counter(self: &mut State<Self>, counter_id: ModuleId) {
-        uplink::emit(counter_id);
         self.transact(counter_id, "increment", ())
     }
 

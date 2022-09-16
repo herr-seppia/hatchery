@@ -11,10 +11,7 @@ use nstack::annotation::Cardinality;
 use nstack::NStack;
 use ranno::Annotation;
 
-use uplink::{HostAlloc, ModuleId, State};
-
-#[global_allocator]
-static ALLOCATOR: HostAlloc = HostAlloc;
+use uplink::{ModuleId, State};
 
 #[derive(Default)]
 pub struct Stack {
