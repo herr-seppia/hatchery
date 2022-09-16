@@ -18,3 +18,4 @@ mod vm_linear_memory;
 
 pub use error::Error;
 pub use vm::VM;
+pub use vm_linear_memory::VMLinearTunables;
