@@ -133,3 +133,23 @@ fn multiple_commits_per_session() -> Result<(), Error> {
     assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xff);
     Ok(())
 }
+
+#[test]
+fn commit_persists_modules_states() -> Result<(), Error> {
+    let mut vm = VM::ephemeral()?;
+    let id = vm.deploy(module_bytecode!("counter"))?;
+
+    {
+        let mut session = vm.session();
+        assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfc);
+        session.transact::<(), ()>(id, "increment", ())?;
+        assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfd);
+        let _commit_1 = session.commit()?;
+        session.transact::<(), ()>(id, "increment", ())?;
+        assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfe);
+    }
+    let mut session = vm.session();
+    assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfd);
+
+    Ok(())
+}
