@@ -176,6 +176,17 @@ impl VM {
         MemoryPath::new(path)
     }
 
+    pub(crate) fn path_to_module_last_commit(
+        &self,
+        module_id: &ModuleId,
+    ) -> MemoryPath {
+        const LAST_COMMIT_POSTFIX: &str = "_last";
+        let mut name = module_id_to_name(*module_id);
+        name.push_str(LAST_COMMIT_POSTFIX);
+        let path = self.inner.read().base_memory_path.join(name);
+        MemoryPath::new(path)
+    }
+
     pub(crate) fn path_to_session_commit(
         &self,
         module_id: &ModuleId,

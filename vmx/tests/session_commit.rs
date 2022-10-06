@@ -50,7 +50,7 @@ fn commit_restore() -> Result<(), Error> {
 
     // commit 2
     let mut session_2 = vm.session();
-    assert_eq!(session_2.query::<(), i64>(id, "read_value", ())?, 0xfc);
+    assert_eq!(session_2.query::<(), i64>(id, "read_value", ())?, 0xfd);
     session_2.transact::<(), ()>(id, "increment", ())?;
     session_2.transact::<(), ()>(id, "increment", ())?;
     let commit_2 = session_2.commit()?;
@@ -122,7 +122,7 @@ fn multiple_commits_per_session() -> Result<(), Error> {
     session.transact::<(), ()>(id, "increment", ())?;
     session.transact::<(), ()>(id, "increment", ())?;
     let commit_2 = session.commit()?;
-    assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xff);
+    assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfe);
 
     // restore commit 1
     session.restore(&commit_1)?;
@@ -130,7 +130,7 @@ fn multiple_commits_per_session() -> Result<(), Error> {
 
     // restore commit 2
     session.restore(&commit_2)?;
-    assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xff);
+    assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfe);
     Ok(())
 }
 
@@ -138,7 +138,6 @@ fn multiple_commits_per_session() -> Result<(), Error> {
 fn commit_persists_modules_states() -> Result<(), Error> {
     let mut vm = VM::ephemeral()?;
     let id = vm.deploy(module_bytecode!("counter"))?;
-
     {
         let mut session = vm.session();
         assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfc);
@@ -146,10 +145,11 @@ fn commit_persists_modules_states() -> Result<(), Error> {
         assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfd);
         let _commit_1 = session.commit()?;
         session.transact::<(), ()>(id, "increment", ())?;
+        let _commit_1 = session.commit()?;
         assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfe);
     }
     let mut session = vm.session();
-    assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfd);
+    assert_eq!(session.query::<(), i64>(id, "read_value", ())?, 0xfe);
 
     Ok(())
 }

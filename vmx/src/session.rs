@@ -158,7 +158,11 @@ impl Session {
             let module_commit_id = ModuleCommitId::from(&source_path)?;
             let target_path =
                 self.vm.path_to_module_commit(module_id, &module_commit_id);
+            let last_commit_path =
+                self.vm.path_to_module_last_commit(module_id);
             std::fs::copy(source_path.as_ref(), target_path.as_ref())
+                .map_err(CommitError)?;
+            std::fs::copy(source_path.as_ref(), last_commit_path.as_ref())
                 .map_err(CommitError)?;
             session_commit.add(module_id, &module_commit_id);
             Ok(())
@@ -182,10 +186,16 @@ impl Session {
         &self,
         module_id: &ModuleId,
     ) -> Option<MemoryPath> {
-        self.current_commit_id.and_then(|session_commit_id| {
-            self.vm
-                .path_to_session_commit(module_id, &session_commit_id)
-        })
+        // let current = self.current_commit_id.and_then(|session_commit_id| {
+        //     self.vm
+        //         .path_to_session_commit(module_id, &session_commit_id)
+        // });
+        // if current.is_some() {
+        //     current
+        // } else {
+            let path = self.vm.path_to_module_last_commit(module_id);
+            Some(path).filter(|p| p.as_ref().exists())
+        // }
     }
 
     fn set_current_commit(&mut self, session_commit_id: &SessionCommitId) {
