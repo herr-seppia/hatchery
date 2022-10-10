@@ -111,7 +111,7 @@ impl Session {
 
             // if current commit exists, use it as memory image
             if let Some(commit_path) = self.path_to_current_commit(&mod_id) {
-                println!("overriding memory from path {:?}", commit_path);
+                // println!("overriding memory from path {:?}", commit_path);
                 let metadata =
                     std::fs::metadata(commit_path.as_ref()).expect("todo - metadata error handling");
                 memory.grow_to(metadata.len() as u32).expect("todo - grow error handling");
