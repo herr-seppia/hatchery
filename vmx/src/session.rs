@@ -17,7 +17,7 @@ use wasmer_vm::LinearMemory;
 
 use uplink::ModuleId;
 
-use crate::commit::{ModuleCommitId, SessionCommit, SessionCommitId};
+use crate::commit::{CommitId, ModuleCommitId, SessionCommit};
 use crate::instance::WrappedInstance;
 use crate::memory_handler::MemoryHandler;
 use crate::memory_path::MemoryPath;
@@ -112,9 +112,11 @@ impl Session {
             // if current commit exists, use it as memory image
             if let Some(commit_path) = self.path_to_current_commit(&mod_id) {
                 // println!("overriding memory from path {:?}", commit_path);
-                let metadata =
-                    std::fs::metadata(commit_path.as_ref()).expect("todo - metadata error handling");
-                memory.grow_to(metadata.len() as u32).expect("todo - grow error handling");
+                let metadata = std::fs::metadata(commit_path.as_ref())
+                    .expect("todo - metadata error handling");
+                memory
+                    .grow_to(metadata.len() as u32)
+                    .expect("todo - grow error handling");
                 let (target_path, _) = self.vm.memory_path(&mod_id);
                 std::fs::copy(commit_path.as_ref(), target_path.as_ref())
                     .expect("commit and memory paths exist");
@@ -154,7 +156,7 @@ impl Session {
         s.pop();
     }
 
-    pub fn commit(mut self) -> Result<SessionCommitId, Error> {
+    pub fn commit(mut self) -> Result<CommitId, Error> {
         let mut session_commit = SessionCommit::new();
         self.memory_handler.with_every_module_id(|module_id, mem| {
             let (source_path, _) = self.vm.memory_path(module_id);
@@ -181,7 +183,7 @@ impl Session {
 
     pub fn restore(
         &mut self,
-        session_commit_id: &SessionCommitId,
+        session_commit_id: &CommitId,
     ) -> Result<(), Error> {
         self.vm.restore_session(session_commit_id)?;
         // self.set_current_commit(session_commit_id);
@@ -199,10 +201,10 @@ impl Session {
         // if current.is_some() {
         //     current
         // } else {
-            let path = self.vm.path_to_module_last_commit(module_id);
-            let x = Some(path).filter(|p| p.as_ref().exists());
-            // println!("path to current commit={:?}", x);
-            x
+        let path = self.vm.path_to_module_last_commit(module_id);
+        let x = Some(path).filter(|p| p.as_ref().exists());
+        // println!("path to current commit={:?}", x);
+        x
         // }
     }
 

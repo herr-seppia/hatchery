@@ -51,7 +51,6 @@ impl From<Linear> for VMMemory {
 }
 
 impl Linear {
-
     pub fn grow_to(&mut self, byte_size: u32) -> Result<Pages, MemoryError> {
         let new_pages = Pages(byte_size >> WASM_PAGE_LOG2);
         let prev_pages = Pages::from(
@@ -79,8 +78,6 @@ impl Linear {
 
         Ok(prev_pages)
     }
-
-
 
     /// Creates a new copy-on-write WASM linear memory backed by a file at the
     /// given `path`.

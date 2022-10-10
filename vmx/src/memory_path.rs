@@ -6,7 +6,6 @@
 
 use std::path::{Path, PathBuf};
 
-
 #[derive(Debug)]
 pub struct MemoryPath {
     path: PathBuf,

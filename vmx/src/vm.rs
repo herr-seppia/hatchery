@@ -20,9 +20,7 @@ use tempfile::tempdir;
 
 use uplink::ModuleId;
 
-use crate::commit::{
-    ModuleCommitId, SessionCommit, SessionCommitId, SessionCommits,
-};
+use crate::commit::{CommitId, ModuleCommitId, SessionCommit, SessionCommits};
 use crate::memory_path::MemoryPath;
 use crate::module::WrappedModule;
 use crate::session::Session;
@@ -190,7 +188,7 @@ impl VM {
     pub(crate) fn path_to_session_commit(
         &self,
         module_id: &ModuleId,
-        session_commit_id: &SessionCommitId,
+        session_commit_id: &CommitId,
     ) -> Option<MemoryPath> {
         self.get_module_commit_id(session_commit_id, module_id).map(
             |module_commit_id| {
@@ -205,7 +203,7 @@ impl VM {
 
     pub(crate) fn restore_session(
         &self,
-        session_commit_id: &SessionCommitId,
+        session_commit_id: &CommitId,
     ) -> Result<(), Error> {
         self.inner.read().session_commits.with_every_module_commit(
             session_commit_id,
@@ -226,7 +224,7 @@ impl VM {
 
     pub(crate) fn get_module_commit_id(
         &self,
-        session_commit_id: &SessionCommitId,
+        session_commit_id: &CommitId,
         module_id: &ModuleId,
     ) -> Option<ModuleCommitId> {
         self.inner
