@@ -6,7 +6,7 @@
 
 use vmx::{module_bytecode, Error, VM};
 
-#[ignore]
+#[test]
 fn read_write_session() -> Result<(), Error> {
     let mut vm = VM::ephemeral()?;
     let id = vm.deploy(module_bytecode!("counter"))?;
@@ -38,7 +38,7 @@ fn read_write_session() -> Result<(), Error> {
     Ok(())
 }
 
-#[ignore]
+#[test]
 fn commit_restore() -> Result<(), Error> {
     let mut vm = VM::ephemeral()?;
     let id = vm.deploy(module_bytecode!("counter"))?;
@@ -68,7 +68,7 @@ fn commit_restore() -> Result<(), Error> {
     Ok(())
 }
 
-#[ignore]
+#[test]
 fn commit_restore_two_modules_session() -> Result<(), Error> {
     let mut vm = VM::ephemeral()?;
     let id_1 = vm.deploy(module_bytecode!("counter"))?;
@@ -109,8 +109,8 @@ fn commit_restore_two_modules_session() -> Result<(), Error> {
     Ok(())
 }
 
-#[ignore]
-fn multiple_commits_per_session() -> Result<(), Error> {
+#[test]
+fn multiple_commits() -> Result<(), Error> {
     let mut vm = VM::ephemeral()?;
     let id = vm.deploy(module_bytecode!("counter"))?;
 
@@ -139,7 +139,7 @@ fn multiple_commits_per_session() -> Result<(), Error> {
     Ok(())
 }
 
-#[ignore]
+#[test]
 fn commit_persists_modules_states() -> Result<(), Error> {
     let mut vm = VM::ephemeral()?;
     let id = vm.deploy(module_bytecode!("counter"))?;

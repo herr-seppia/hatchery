@@ -213,7 +213,11 @@ impl VM {
                 let source_path =
                     self.path_to_module_commit(module_id, module_commit_id);
                 let (target_path, _) = self.memory_path(module_id);
+                let last_commit_path =
+                    self.path_to_module_last_commit(module_id);
                 std::fs::copy(source_path.as_ref(), target_path.as_ref())
+                    .map_err(RestoreError)?;
+                std::fs::copy(source_path.as_ref(), last_commit_path.as_ref())
                     .map_err(RestoreError)?;
                 Ok(())
             },

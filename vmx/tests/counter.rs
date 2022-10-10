@@ -6,7 +6,7 @@
 
 use vmx::{module_bytecode, Error, VM};
 
-#[ignore]
+#[test]
 fn counter_read_simple() -> Result<(), Error> {
     let mut vm = VM::ephemeral()?;
     let id = vm.deploy(module_bytecode!("counter"))?;
@@ -16,7 +16,7 @@ fn counter_read_simple() -> Result<(), Error> {
     Ok(())
 }
 
-#[ignore]
+#[test]
 fn counter_read_write_simple() -> Result<(), Error> {
     let mut vm = VM::ephemeral()?;
     let id = vm.deploy(module_bytecode!("counter"))?;
