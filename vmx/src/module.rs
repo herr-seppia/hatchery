@@ -7,6 +7,7 @@
 use crate::error::Error::{self, ParsingError};
 use wasmparser::{DataKind, Operator, Parser, Payload};
 
+use crate::instance::Store;
 use std::fmt;
 
 impl fmt::Debug for VolatileMem {
@@ -59,7 +60,9 @@ impl WrappedModule {
             }
         }
 
-        let module = wasmer::Module::new(&wasmer::Store::default(), bytecode)?;
+        let store = Store::new();
+
+        let module = wasmer::Module::new(&store, bytecode)?;
         let serialized = module.serialize()?;
 
         Ok(WrappedModule {

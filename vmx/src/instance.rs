@@ -20,9 +20,7 @@ use rkyv::{
 };
 use uplink::{ModuleId, SCRATCH_BUF_BYTES};
 use wasmer::wasmparser::Operator;
-use wasmer::{
-    CompilerConfig, EngineBuilder, RuntimeError, Store, Tunables, TypedFunction,
-};
+use wasmer::{CompilerConfig, RuntimeError, Tunables, TypedFunction};
 use wasmer_compiler_singlepass::Singlepass;
 use wasmer_middlewares::metering::{
     get_remaining_points, set_remaining_points, MeteringPoints,
@@ -39,6 +37,37 @@ use crate::types::StandardBufSerializer;
 use crate::Error;
 
 const INITIAL_POINT_LIMIT: u64 = 1_000_000;
+
+/// Convenience methods for dealing with our custom store
+pub struct Store;
+
+impl Store {
+    pub fn new() -> wasmer::Store {
+        Self::with_creator(|compiler_config| {
+            wasmer::Store::new(compiler_config)
+        })
+    }
+
+    pub fn new_with_tunables(
+        tunables: impl Tunables + Send + Sync + 'static,
+    ) -> wasmer::Store {
+        Self::with_creator(|compiler_config| {
+            wasmer::Store::new_with_tunables(compiler_config, tunables)
+        })
+    }
+
+    fn with_creator<F>(f: F) -> wasmer::Store
+    where
+        F: FnOnce(Singlepass) -> wasmer::Store,
+    {
+        let metering =
+            Arc::new(Metering::new(INITIAL_POINT_LIMIT, cost_function));
+        let mut compiler_config = Singlepass::default();
+        compiler_config.push_middleware(metering);
+
+        f(compiler_config)
+    }
+}
 
 pub struct WrappedInstance {
     instance: wasmer::Instance,
@@ -101,15 +130,8 @@ impl WrappedInstance {
         id: ModuleId,
         wrap: &WrappedModule,
     ) -> Result<Self, Error> {
-        let metering =
-            Arc::new(Metering::new(INITIAL_POINT_LIMIT, cost_function));
-        let mut compiler_config = Singlepass::default();
-        compiler_config.push_middleware(metering);
-
-        let mut store = Store::new_with_tunables(
-            EngineBuilder::new(compiler_config),
-            InstanceTunables::new(memory.clone()),
-        );
+        let tunables = InstanceTunables::new(memory.clone());
+        let mut store = Store::new_with_tunables(tunables);
 
         let env = Env {
             self_id: id,
