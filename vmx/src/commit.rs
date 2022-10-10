@@ -103,9 +103,6 @@ impl SessionCommit {
         &self.ids
     }
 
-    pub fn get(&self, module_id: &ModuleId) -> Option<&ModuleCommitId> {
-        self.ids.get(module_id)
-    }
 }
 
 impl Default for SessionCommit {

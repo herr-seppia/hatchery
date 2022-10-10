@@ -13,7 +13,6 @@ use rkyv::{
     validation::validators::DefaultValidator, Archive, Deserialize, Infallible,
     Serialize,
 };
-use wasmer_vm::LinearMemory;
 
 use uplink::ModuleId;
 
@@ -78,7 +77,6 @@ impl Session {
         let arg_len = instance.write_to_arg_buffer(arg)?;
         let ret_len = instance.transact(method_name, arg_len)?;
 
-        // self.reset_current_commit();
 
         instance.read_from_arg_buffer(ret_len)
     }
@@ -111,7 +109,6 @@ impl Session {
 
             // if current commit exists, use it as memory image
             if let Some(commit_path) = self.path_to_current_commit(&mod_id) {
-                // println!("overriding memory from path {:?}", commit_path);
                 let metadata = std::fs::metadata(commit_path.as_ref())
                     .expect("todo - metadata error handling");
                 memory
@@ -165,17 +162,14 @@ impl Session {
                 self.vm.path_to_module_commit(module_id, &module_commit_id);
             let last_commit_path =
                 self.vm.path_to_module_last_commit(module_id);
-            // println!("committing to {:?}", target_path);
             std::fs::copy(source_path.as_ref(), target_path.as_ref())
                 .map_err(CommitError)?;
-            // println!("committing to {:?}", last_commit_path);
             std::fs::copy(source_path.as_ref(), last_commit_path.as_ref())
                 .map_err(CommitError)?;
-            fs::remove_file(source_path.as_ref());
+            fs::remove_file(source_path.as_ref()).map_err(CommitError)?;
             session_commit.add(module_id, &module_commit_id);
             Ok(())
         })?;
-        // self.set_current_commit(&session_commit.commit_id());
         let session_commit_id = session_commit.commit_id();
         self.vm.add_session_commit(session_commit);
         Ok(session_commit_id)
@@ -186,7 +180,6 @@ impl Session {
         session_commit_id: &CommitId,
     ) -> Result<(), Error> {
         self.vm.restore_session(session_commit_id)?;
-        // self.set_current_commit(session_commit_id);
         Ok(())
     }
 
@@ -194,25 +187,9 @@ impl Session {
         &self,
         module_id: &ModuleId,
     ) -> Option<MemoryPath> {
-        // let current = self.current_commit_id.and_then(|session_commit_id| {
-        //     self.vm
-        //         .path_to_session_commit(module_id, &session_commit_id)
-        // });
-        // if current.is_some() {
-        //     current
-        // } else {
         let path = self.vm.path_to_module_last_commit(module_id);
-        let x = Some(path).filter(|p| p.as_ref().exists());
-        // println!("path to current commit={:?}", x);
-        x
-        // }
+        Some(path).filter(|p| p.as_ref().exists())
     }
 
-    // fn set_current_commit(&mut self, session_commit_id: &SessionCommitId) {
-    //     self.current_commit_id = Some(*session_commit_id);
-    // }
 
-    // fn reset_current_commit(&mut self) {
-    //     self.current_commit_id = None;
-    // }
 }

@@ -185,17 +185,6 @@ impl VM {
         MemoryPath::new(path)
     }
 
-    pub(crate) fn path_to_session_commit(
-        &self,
-        module_id: &ModuleId,
-        session_commit_id: &CommitId,
-    ) -> Option<MemoryPath> {
-        self.get_module_commit_id(session_commit_id, module_id).map(
-            |module_commit_id| {
-                self.path_to_module_commit(module_id, &module_commit_id)
-            },
-        )
-    }
 
     pub(crate) fn add_session_commit(&mut self, session_commit: SessionCommit) {
         self.inner.write().session_commits.add(session_commit);
@@ -220,18 +209,7 @@ impl VM {
                 Ok(())
             },
         )
-    }
 
-    pub(crate) fn get_module_commit_id(
-        &self,
-        session_commit_id: &CommitId,
-        module_id: &ModuleId,
-    ) -> Option<ModuleCommitId> {
-        self.inner
-            .read()
-            .session_commits
-            .get_session_commit(session_commit_id)
-            .and_then(|sc| sc.get(module_id).copied())
     }
 }
 

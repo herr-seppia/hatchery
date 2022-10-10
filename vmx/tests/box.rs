@@ -19,9 +19,8 @@ pub fn box_set_get() -> Result<(), Error> {
     let mut session = vm.session();
 
     session.transact::<i16, ()>(id, "set", 0x11)?;
-    session.commit()?;
 
-    let value = vm.query::<_, Option<i16>>(id, "get", ())?;
+    let value = session.query::<_, Option<i16>>(id, "get", ())?;
     assert_eq!(value, Some(0x11));
 
     Ok(())
