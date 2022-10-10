@@ -315,21 +315,7 @@ impl LinearMemory for Linear {
         }
 
         let new_pages = prev_pages + delta;
-        let delta_bytes = delta.bytes().0;
-        let prev_bytes = prev_pages.bytes().0;
-
-        self.make_accessible(prev_bytes, delta_bytes)
-            .map_err(|_e| {
-                MemoryError::Region("todo error to string conv".to_string())
-            })?;
-
-        unsafe {
-            let mut md_ptr = self.definition_ptr();
-            let md = md_ptr.as_mut();
-            md.current_length = new_pages.bytes().0;
-        }
-
-        Ok(prev_pages)
+        self.grow_to(new_pages.bytes().0 as u32)
     }
 
     fn vmmemory(&self) -> NonNull<VMMemoryDefinition> {
