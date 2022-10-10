@@ -42,13 +42,13 @@ const INITIAL_POINT_LIMIT: u64 = 1_000_000;
 pub struct Store;
 
 impl Store {
-    pub fn new() -> wasmer::Store {
+    pub fn new_store() -> wasmer::Store {
         Self::with_creator(|compiler_config| {
             wasmer::Store::new(compiler_config)
         })
     }
 
-    pub fn new_with_tunables(
+    pub fn new_store_with_tunables(
         tunables: impl Tunables + Send + Sync + 'static,
     ) -> wasmer::Store {
         Self::with_creator(|compiler_config| {
@@ -131,7 +131,7 @@ impl WrappedInstance {
         wrap: &WrappedModule,
     ) -> Result<Self, Error> {
         let tunables = InstanceTunables::new(memory.clone());
-        let mut store = Store::new_with_tunables(tunables);
+        let mut store = Store::new_store_with_tunables(tunables);
 
         let env = Env {
             self_id: id,

@@ -60,7 +60,7 @@ impl WrappedModule {
             }
         }
 
-        let store = Store::new();
+        let store = Store::new_store();
 
         let module = wasmer::Module::new(&store, bytecode)?;
         let serialized = module.serialize()?;
