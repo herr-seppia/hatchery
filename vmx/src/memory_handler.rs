@@ -5,6 +5,7 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use std::collections::BTreeMap;
+use std::fs;
 use std::sync::Arc;
 
 use parking_lot::RwLock;
@@ -34,12 +35,15 @@ impl MemoryHandler {
         {
             let rg = self.memories.read();
             if let Some(mem) = rg.get(&mod_id) {
+                println!("get_memory 1 {:?}", mod_id);
                 return Ok(mem.clone());
             }
         }
 
         self.vm.with_module(mod_id, |module| {
             let (path, fresh) = self.vm.memory_path(&mod_id);
+            fs::remove_file(path.as_ref());
+            println!("get_memory 3 {:?}", mod_id);
             let result = Linear::new(
                 Some(path),
                 MEMORY_PAGES * WASM_PAGE_SIZE,
