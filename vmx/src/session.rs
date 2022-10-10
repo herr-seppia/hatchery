@@ -25,6 +25,7 @@ use crate::vm::VM;
 use crate::Error::{self, CommitError};
 
 pub const COMMIT_ID_BYTES: usize = 4;
+const DEFAULT_POINT_LIMIT: u64 = 65536;
 
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub struct CommitId([u8; COMMIT_ID_BYTES]);
@@ -63,6 +64,8 @@ pub struct Session {
     callstack: Arc<RwLock<Vec<ModuleId>>>,
     debug: Arc<RwLock<Vec<String>>>,
     events: Arc<RwLock<Vec<Event>>>,
+    limit: u64,
+    spent: u64,
 }
 
 impl Session {
@@ -73,11 +76,13 @@ impl Session {
             callstack: Arc::new(RwLock::new(vec![])),
             debug: Arc::new(RwLock::new(vec![])),
             events: Arc::new(RwLock::new(vec![])),
+            limit: DEFAULT_POINT_LIMIT,
+            spent: 0,
         }
     }
 
     pub fn query<Arg, Ret>(
-        &self,
+        &mut self,
         id: ModuleId,
         method_name: &str,
         arg: Arg,
@@ -91,7 +96,12 @@ impl Session {
         let mut instance = self.instance(id);
 
         let arg_len = instance.write_to_arg_buffer(arg)?;
-        let ret_len = instance.query(method_name, arg_len)?;
+        let ret_len = instance.query(method_name, arg_len, self.limit)?;
+
+        let remaining = instance
+            .get_remaining_points()
+            .expect("there should be points remaining");
+        self.spent = self.limit - remaining;
 
         instance.read_from_arg_buffer(ret_len)
     }
@@ -111,7 +121,12 @@ impl Session {
         let mut instance = self.instance(id);
 
         let arg_len = instance.write_to_arg_buffer(arg)?;
-        let ret_len = instance.transact(method_name, arg_len)?;
+        let ret_len = instance.transact(method_name, arg_len, self.limit)?;
+
+        let remaining = instance
+            .get_remaining_points()
+            .expect("there should be points remaining");
+        self.spent = self.limit - remaining;
 
         instance.read_from_arg_buffer(ret_len)
     }
@@ -123,6 +138,16 @@ impl Session {
         std::fs::copy(source_path.as_ref(), target_path.as_ref())
             .map_err(CommitError)?;
         Ok(commit_id)
+    }
+
+    pub fn set_point_limit(&mut self, limit: u64) {
+        self.limit = limit;
+    }
+
+    /// Number of points spent by the last call - [`query`] or [`transact`]. If
+    /// these have never been called, `0` will be returned.
+    pub fn spent(&self) -> u64 {
+        self.spent
     }
 
     pub(crate) fn push_event(&mut self, event: Event) {

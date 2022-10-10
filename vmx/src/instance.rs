@@ -5,6 +5,7 @@
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
 use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 
 use bytecheck::CheckBytes;
 use colored::*;
@@ -18,8 +19,15 @@ use rkyv::{
     Archive, Deserialize, Infallible, Serialize,
 };
 use uplink::{ModuleId, SCRATCH_BUF_BYTES};
-use wasmer::{Store, Tunables, TypedFunction};
+use wasmer::wasmparser::Operator;
+use wasmer::{
+    CompilerConfig, EngineBuilder, RuntimeError, Store, Tunables, TypedFunction,
+};
 use wasmer_compiler_singlepass::Singlepass;
+use wasmer_middlewares::metering::{
+    get_remaining_points, set_remaining_points, MeteringPoints,
+};
+use wasmer_middlewares::Metering;
 use wasmer_vm::VMMemory;
 
 use crate::event::Event;
@@ -29,6 +37,8 @@ use crate::module::WrappedModule;
 use crate::session::Session;
 use crate::types::StandardBufSerializer;
 use crate::Error;
+
+const INITIAL_POINT_LIMIT: u64 = 1_000_000;
 
 pub struct WrappedInstance {
     instance: wasmer::Instance,
@@ -91,8 +101,13 @@ impl WrappedInstance {
         id: ModuleId,
         wrap: &WrappedModule,
     ) -> Result<Self, Error> {
+        let metering =
+            Arc::new(Metering::new(INITIAL_POINT_LIMIT, cost_function));
+        let mut compiler_config = Singlepass::default();
+        compiler_config.push_middleware(metering);
+
         let mut store = Store::new_with_tunables(
-            Singlepass::default(),
+            EngineBuilder::new(compiler_config),
             InstanceTunables::new(memory.clone()),
         );
 
@@ -169,6 +184,17 @@ impl WrappedInstance {
         })
     }
 
+    pub(crate) fn get_remaining_points(&mut self) -> Option<u64> {
+        match get_remaining_points(&mut self.store, &self.instance) {
+            MeteringPoints::Remaining(points) => Some(points),
+            MeteringPoints::Exhausted => None,
+        }
+    }
+
+    pub(crate) fn set_remaining_points(&mut self, points: u64) {
+        set_remaining_points(&mut self.store, &self.instance, points)
+    }
+
     pub(crate) fn with_memory<F, R>(&self, f: F) -> R
     where
         F: FnOnce(&[u8]) -> R,
@@ -229,28 +255,32 @@ impl WrappedInstance {
         &mut self,
         method_name: &str,
         arg_len: u32,
+        limit: u64,
     ) -> Result<u32, Error> {
         let fun: TypedFunction<u32, u32> = self
             .instance
             .exports
             .get_typed_function(&self.store, method_name)?;
 
-        let res = fun.call(&mut self.store, arg_len)?;
-
-        Ok(res)
+        self.set_remaining_points(limit);
+        fun.call(&mut self.store, arg_len)
+            .map_err(|e| map_call_err(self, e))
     }
 
     pub fn transact(
         &mut self,
         method_name: &str,
         arg_len: u32,
+        limit: u64,
     ) -> Result<u32, Error> {
         let fun: TypedFunction<u32, u32> = self
             .instance
             .exports
             .get_typed_function(&self.store, method_name)?;
 
-        Ok(fun.call(&mut self.store, arg_len)?)
+        self.set_remaining_points(limit);
+        fun.call(&mut self.store, arg_len)
+            .map_err(|e| map_call_err(self, e))
     }
 
     #[allow(unused)]
@@ -302,6 +332,14 @@ impl WrappedInstance {
     pub fn arg_buffer_offset(&self) -> usize {
         self.arg_buf_ofs
     }
+}
+
+fn map_call_err(instance: &mut WrappedInstance, err: RuntimeError) -> Error {
+    if instance.get_remaining_points().is_none() {
+        return Error::OutOfPoints;
+    }
+
+    err.into()
 }
 
 pub struct InstanceTunables {
@@ -375,4 +413,8 @@ impl Tunables for InstanceTunables {
     ) -> Result<wasmer_vm::VMTable, String> {
         wasmer_vm::VMTable::from_definition(ty, style, vm_definition_location)
     }
+}
+
+fn cost_function(_op: &Operator) -> u64 {
+    1
 }

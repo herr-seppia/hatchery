@@ -10,6 +10,8 @@ use uplink::{ModuleId, ARGBUF_LEN};
 
 use crate::instance::Env;
 
+const POINT_PASS_PCT: u64 = 93;
+
 pub(crate) struct DefaultImports;
 
 impl DefaultImports {
@@ -24,6 +26,8 @@ impl DefaultImports {
                 "nq" => Function::new_typed_with_env(store, &fenv, nq),
                 "host_debug" => Function::new_typed_with_env(store, &fenv, host_debug),
                 "emit" => Function::new_typed_with_env(store, &fenv, emit),
+                "limit" => Function::new_typed_with_env(store, &fenv, limit),
+                "spent" => Function::new_typed_with_env(store, &fenv, spent),
             }
         }
     }
@@ -49,10 +53,16 @@ fn q(
 ) -> u32 {
     let env = fenv.data_mut();
 
-    let instance = env.self_instance();
+    let mut instance = env.self_instance();
+
+    let remaining_points = instance
+        .get_remaining_points()
+        .expect("a module can't perform host calls if it has no more points");
+    let passed_points = remaining_points * POINT_PASS_PCT / 100;
+
     let argbuf_ofs = instance.arg_buffer_offset();
 
-    instance.with_memory_mut(|memory| {
+    let (ret_len, points_used) = instance.with_memory_mut(|memory| {
         let (ret_len, mut callee) = {
             let name = core::str::from_utf8(
                 &memory[name_ofs as usize..][..name_len as usize],
@@ -72,17 +82,25 @@ fn q(
             env.push_callstack(mod_id);
 
             callee.write_argument(arg);
-            let ret_len =
-                callee.query(name, arg.len() as u32).expect("invalid query");
+            let ret_len = callee
+                .query(name, arg.len() as u32, passed_points)
+                .expect("invalid query");
             (ret_len, callee)
         };
 
         env.pop_callstack();
+        let remaining_points = callee
+            .get_remaining_points()
+            .expect("will panic during the query");
 
         // copy back result
         callee.read_argument(&mut memory[argbuf_ofs..][..ret_len as usize]);
-        ret_len
-    })
+        (ret_len, passed_points - remaining_points)
+    });
+
+    instance.set_remaining_points(remaining_points - points_used);
+
+    ret_len
 }
 
 fn t(
@@ -94,10 +112,16 @@ fn t(
 ) -> u32 {
     let env = fenv.data_mut();
 
-    let instance = env.self_instance();
+    let mut instance = env.self_instance();
+
+    let remaining_points = instance
+        .get_remaining_points()
+        .expect("a module can't perform host calls if it has no more points");
+    let passed_points = remaining_points * POINT_PASS_PCT / 100;
+
     let argbuf_ofs = instance.arg_buffer_offset();
 
-    instance.with_memory_mut(|memory| {
+    let (ret_len, points_used) = instance.with_memory_mut(|memory| {
         let (ret_len, mut callee) = {
             let name = core::str::from_utf8(
                 &memory[name_ofs as usize..][..name_len as usize],
@@ -120,17 +144,24 @@ fn t(
 
             callee.write_argument(arg);
             let ret_len = callee
-                .transact(name, arg.len() as u32)
+                .transact(name, arg.len() as u32, passed_points)
                 .expect("invalid transaction");
             (ret_len, callee)
         };
 
         env.pop_callstack();
+        let remaining_points = callee
+            .get_remaining_points()
+            .expect("will panic during the query");
 
         // copy back result
         callee.read_argument(&mut memory[argbuf_ofs..][..ret_len as usize]);
-        ret_len
-    })
+        (ret_len, passed_points - remaining_points)
+    });
+
+    instance.set_remaining_points(remaining_points - points_used);
+
+    ret_len
 }
 
 fn nq(
@@ -175,4 +206,12 @@ fn host_debug(fenv: FunctionEnvMut<Env>, msg_ofs: i32, msg_len: u32) {
 
         println!("MODULE DEBUG {:?}", msg)
     })
+}
+
+fn limit(_fenv: FunctionEnvMut<Env>) {
+    todo!()
+}
+
+fn spent(_fenv: FunctionEnvMut<Env>) {
+    todo!()
 }

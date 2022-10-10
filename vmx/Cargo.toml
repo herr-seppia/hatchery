@@ -9,6 +9,7 @@ uplink = { path = "../uplink" }
 wasmer = { git = "https://github.com/wasmerio/wasmer", rev = "dafdd94" }
 wasmer-vm = { git = "https://github.com/wasmerio/wasmer", rev = "dafdd94" }
 wasmer-types = { git = "https://github.com/wasmerio/wasmer", rev = "dafdd94" }
+wasmer-middlewares = { git = "https://github.com/wasmerio/wasmer", rev = "dafdd94" }
 wasmer-compiler-singlepass = { git = "https://github.com/wasmerio/wasmer", rev = "dafdd94" }
 bytecheck = "0.6"
 rkyv = { version = "0.7", features = ["size_32", "validation"] }
