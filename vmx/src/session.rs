@@ -61,7 +61,7 @@ impl core::fmt::Debug for CommitId {
 pub struct Session {
     vm: VM,
     memory_handler: MemoryHandler,
-    callstack: Arc<RwLock<Vec<ModuleId>>>,
+    callstack: Arc<RwLock<Vec<(ModuleId, u64)>>>,
     debug: Arc<RwLock<Vec<String>>>,
     events: Arc<RwLock<Vec<Event>>>,
     limit: u64,
@@ -95,8 +95,12 @@ impl Session {
     {
         let mut instance = self.instance(id);
 
+        self.push_callstack(id, self.limit);
+
         let arg_len = instance.write_to_arg_buffer(arg)?;
         let ret_len = instance.query(method_name, arg_len, self.limit)?;
+
+        self.pop_callstack();
 
         let remaining = instance
             .get_remaining_points()
@@ -120,8 +124,12 @@ impl Session {
     {
         let mut instance = self.instance(id);
 
+        self.push_callstack(id, self.limit);
+
         let arg_len = instance.write_to_arg_buffer(arg)?;
         let ret_len = instance.transact(method_name, arg_len, self.limit)?;
+
+        self.pop_callstack();
 
         let remaining = instance
             .get_remaining_points()
@@ -194,20 +202,20 @@ impl Session {
         self.vm.host_query(name, buf, arg_len)
     }
 
-    pub fn nth_from_top(&self, n: usize) -> ModuleId {
+    /// Returns the `nth` element on the call stack, starting from the top.
+    pub fn nth_from_top(&self, n: usize) -> (ModuleId, u64) {
         let stack = self.callstack.read();
         let len = stack.len();
 
-        if len > n + 1 {
-            stack[len - (n + 1)]
-        } else {
-            ModuleId::uninitialized()
+        match len > n {
+            true => stack[len - (n + 1)],
+            false => (ModuleId::uninitialized(), 0),
         }
     }
 
-    pub(crate) fn push_callstack(&self, id: ModuleId) {
+    pub(crate) fn push_callstack(&self, id: ModuleId, limit: u64) {
         let mut s = self.callstack.write();
-        s.push(id);
+        s.push((id, limit));
     }
 
     pub(crate) fn pop_callstack(&self) {

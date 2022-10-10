@@ -36,7 +36,7 @@ impl DefaultImports {
 fn caller(env: FunctionEnvMut<Env>) {
     let env = env.data();
 
-    let mod_id = env.nth_from_top(1);
+    let (mod_id, _) = env.nth_from_top(1);
 
     env.self_instance().with_arg_buffer(|arg| {
         arg[..std::mem::size_of::<ModuleId>()]
@@ -79,7 +79,7 @@ fn q(
             let mut callee = env.instance(mod_id);
             let arg = &arg_buf[..arg_len as usize];
 
-            env.push_callstack(mod_id);
+            env.push_callstack(mod_id, passed_points);
 
             callee.write_argument(arg);
             let ret_len = callee
@@ -140,7 +140,7 @@ fn t(
 
             let arg = &arg_buf[..arg_len as usize];
 
-            env.push_callstack(mod_id);
+            env.push_callstack(mod_id, passed_points);
 
             callee.write_argument(arg);
             let ret_len = callee
@@ -208,10 +208,29 @@ fn host_debug(fenv: FunctionEnvMut<Env>, msg_ofs: i32, msg_len: u32) {
     })
 }
 
-fn limit(_fenv: FunctionEnvMut<Env>) {
-    todo!()
+fn limit(fenv: FunctionEnvMut<Env>) {
+    let env = fenv.data();
+
+    let (_, limit) = env.nth_from_top(0);
+
+    env.self_instance().with_arg_buffer(|arg| {
+        arg[..std::mem::size_of::<u64>()].copy_from_slice(&limit.to_le_bytes())
+    })
 }
 
-fn spent(_fenv: FunctionEnvMut<Env>) {
-    todo!()
+fn spent(fenv: FunctionEnvMut<Env>) {
+    let env = fenv.data();
+
+    let (_, limit) = env.nth_from_top(0);
+    let mut instance = env.self_instance();
+
+    let remaining = instance
+        .get_remaining_points()
+        .expect("a module can't perform host calls if it has no more points");
+
+    let spent = limit - remaining;
+
+    env.self_instance().with_arg_buffer(|arg| {
+        arg[..std::mem::size_of::<u64>()].copy_from_slice(&spent.to_le_bytes())
+    })
 }
