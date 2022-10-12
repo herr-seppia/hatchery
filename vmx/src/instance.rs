@@ -31,6 +31,7 @@ use wasmer_vm::VMMemory;
 use crate::event::Event;
 use crate::imports::DefaultImports;
 use crate::linear::{Linear, MEMORY_PAGES};
+use crate::metering::{set_limit_points, LimitSpent};
 use crate::module::WrappedModule;
 use crate::session::Session;
 use crate::types::StandardBufSerializer;
@@ -62,8 +63,12 @@ impl Store {
     {
         let metering =
             Arc::new(Metering::new(INITIAL_POINT_LIMIT, cost_function));
+        let limit_spent = Arc::new(LimitSpent::new(INITIAL_POINT_LIMIT));
+
         let mut compiler_config = Singlepass::default();
+
         compiler_config.push_middleware(metering);
+        compiler_config.push_middleware(limit_spent);
 
         f(compiler_config)
     }
@@ -164,6 +169,16 @@ impl WrappedInstance {
                 _ => todo!("Missing `SELF_ID` export"),
             };
 
+        // match instance.exports.get_global("LIMIT")?.get(&mut store) {
+        //     wasmer::Value::I64(i) => i as usize,
+        //     _ => todo!("Missing `LIMIT` export"),
+        // };
+        //
+        // match instance.exports.get_global("SPENT")?.get(&mut store) {
+        //     wasmer::Value::I64(i) => i as usize,
+        //     _ => todo!("Missing `SPENT` export"),
+        // };
+
         // write self id into memory.
 
         memory.write_self_id(self_id_ofs, id);
@@ -215,6 +230,10 @@ impl WrappedInstance {
 
     pub(crate) fn set_remaining_points(&mut self, points: u64) {
         set_remaining_points(&mut self.store, &self.instance, points)
+    }
+
+    pub(crate) fn set_limit_points(&mut self, points: u64) {
+        set_limit_points(&mut self.store, &self.instance, points)
     }
 
     pub(crate) fn with_memory<F, R>(&self, f: F) -> R

@@ -26,8 +26,6 @@ impl DefaultImports {
                 "nq" => Function::new_typed_with_env(store, &fenv, nq),
                 "host_debug" => Function::new_typed_with_env(store, &fenv, host_debug),
                 "emit" => Function::new_typed_with_env(store, &fenv, emit),
-                "limit" => Function::new_typed_with_env(store, &fenv, limit),
-                "spent" => Function::new_typed_with_env(store, &fenv, spent),
             }
         }
     }
@@ -205,32 +203,5 @@ fn host_debug(fenv: FunctionEnvMut<Env>, msg_ofs: i32, msg_len: u32) {
         env.register_debug(msg);
 
         println!("MODULE DEBUG {:?}", msg)
-    })
-}
-
-fn limit(fenv: FunctionEnvMut<Env>) {
-    let env = fenv.data();
-
-    let (_, limit) = env.nth_from_top(0);
-
-    env.self_instance().with_arg_buffer(|arg| {
-        arg[..std::mem::size_of::<u64>()].copy_from_slice(&limit.to_le_bytes())
-    })
-}
-
-fn spent(fenv: FunctionEnvMut<Env>) {
-    let env = fenv.data();
-
-    let (_, limit) = env.nth_from_top(0);
-    let mut instance = env.self_instance();
-
-    let remaining = instance
-        .get_remaining_points()
-        .expect("a module can't perform host calls if it has no more points");
-
-    let spent = limit - remaining;
-
-    env.self_instance().with_arg_buffer(|arg| {
-        arg[..std::mem::size_of::<u64>()].copy_from_slice(&spent.to_le_bytes())
     })
 }

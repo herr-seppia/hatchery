@@ -22,6 +22,12 @@ mod arg_buf {
     #[no_mangle]
     static mut A: [u64; ARGBUF_LEN / 8] = [0; ARGBUF_LEN / 8];
 
+    // #[no_mangle]
+    // pub static mut LIMIT: u64 = 0;
+    //
+    // #[no_mangle]
+    // pub static mut SPENT: u64 = 0;
+
     pub fn with_arg_buf<F, R>(f: F) -> R
     where
         F: FnOnce(&mut [u8]) -> R,
@@ -41,6 +47,9 @@ pub(crate) use arg_buf::with_arg_buf;
 
 mod ext {
     extern "C" {
+        pub(crate) static LIMIT: u64;
+        pub(crate) static SPENT: u64;
+
         pub(crate) fn q(
             mod_id_ofs: *const u8,
             name: *const u8,
@@ -58,8 +67,6 @@ mod ext {
         pub(crate) fn height();
         pub(crate) fn caller();
         pub(crate) fn emit(arg_len: u32);
-        pub(crate) fn limit();
-        pub(crate) fn spent();
     }
 }
 
@@ -199,23 +206,11 @@ pub fn caller() -> ModuleId {
 }
 
 pub fn limit() -> u64 {
-    unsafe { ext::limit() };
-    with_arg_buf(|buf| {
-        let ret = unsafe {
-            archived_root::<u64>(&buf[..core::mem::size_of::<Archived<u64>>()])
-        };
-        ret.deserialize(&mut Infallible).expect("Infallible")
-    })
+    unsafe { ext::LIMIT }
 }
 
 pub fn spent() -> u64 {
-    unsafe { ext::spent() };
-    with_arg_buf(|buf| {
-        let ret = unsafe {
-            archived_root::<u64>(&buf[..core::mem::size_of::<Archived<u64>>()])
-        };
-        ret.deserialize(&mut Infallible).expect("Infallible")
-    })
+    unsafe { ext::SPENT }
 }
 
 impl<S> State<S> {

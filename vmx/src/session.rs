@@ -94,6 +94,7 @@ impl Session {
             + for<'b> CheckBytes<DefaultValidator<'b>>,
     {
         let mut instance = self.instance(id);
+        instance.set_limit_points(self.limit);
 
         self.push_callstack(id, self.limit);
 
@@ -123,6 +124,7 @@ impl Session {
             + for<'b> CheckBytes<DefaultValidator<'b>>,
     {
         let mut instance = self.instance(id);
+        instance.set_limit_points(self.limit);
 
         self.push_callstack(id, self.limit);
 

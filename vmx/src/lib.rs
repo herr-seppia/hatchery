@@ -12,6 +12,7 @@ mod imports;
 mod instance;
 mod linear;
 mod memory_handler;
+mod metering;
 mod module;
 mod session;
 mod types;
