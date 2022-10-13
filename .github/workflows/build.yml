@@ -9,7 +9,7 @@ name: build
 jobs:
   analyze:
     name: Dusk analyzer
-    runs-on: core
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install latest nightly toolchain
@@ -27,7 +27,7 @@ jobs:
           command: dusk-analyzer
   test:
     name: Make test
-    runs-on: core
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install latest nightly toolchain
@@ -43,7 +43,7 @@ jobs:
 
   fmt:
     name: Rustfmt
-    runs-on: core
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install latest nightly toolchain
@@ -59,7 +59,7 @@ jobs:
 
   clippy:
     name: Clippy
-    runs-on: core
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install latest nightly toolchain
